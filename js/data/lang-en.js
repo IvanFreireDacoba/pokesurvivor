@@ -217,6 +217,7 @@ G.I18n.add({
   'El navegador bloqueó la ventana de Google. Permite las ventanas emergentes.': 'The browser blocked the Google window. Please allow pop-ups.',
   'Este dominio no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados).': 'This domain is not authorized in Firebase (Authentication > Settings > Authorized domains).',
   'Entrar con Google necesita la versión publicada del juego.': 'Google sign-in needs the online version of the game.',
+  'Entrar con Google no funciona dentro de la app: Google no lo permite. Usa una cuenta con nombre y contraseña o juega como invitado.': 'Google sign-in does not work inside the app: Google does not allow it. Use an account with name and password or play as guest.',
   'Ese método de inicio de sesión no está activado en Firebase.': 'That sign-in method is not enabled in Firebase.',
   'La base de datos rechazó el acceso (revisa las reglas de Firestore).': 'The database denied access (check the Firestore rules).',
   'Sin conexión con la base de datos.': 'No connection to the database.', 'El navegador no deja guardar datos (¿modo incógnito?).': 'The browser won\'t let us save data (incognito mode?).',
