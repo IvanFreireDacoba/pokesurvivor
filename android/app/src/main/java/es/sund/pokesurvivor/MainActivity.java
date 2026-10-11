@@ -96,6 +96,7 @@ public class MainActivity extends Activity {
             web.restoreState(savedInstanceState);
         } else {
             web.loadUrl(INICIO);
+            Actualizador.comprobar(this);
         }
     }
 
