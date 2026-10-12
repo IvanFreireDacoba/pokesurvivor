@@ -527,10 +527,15 @@ G.Combat = (() => {
     else if (G.Projectiles.all().some(p => p.orb && p.owner === pl)) G.Projectiles.clearOrbs(pl);
   }
 
+  // Golpe crítico (Mejoras → Golpe Crítico): x1,5 de daño, número naranja y grande.
+  const CRIT_MUL = 1.5;
+  const isCrit = pl => !ghost && pl.critChance > 0 && Math.random() < pl.critChance;
+
   function hit(pl, e, dmg, col, dx, dy, knock, m) {
     const k = typeK(m.type, e);
-    dmg *= k;
-    e.hurt(dmg, col, dx, dy, knock, G.Types.label(G.Types.mult(m.type, e.types)));
+    const crit = isCrit(pl);
+    dmg *= k * (crit ? CRIT_MUL : 1);
+    e.hurt(dmg, col, dx, dy, knock, crit ? 'crit' : G.Types.label(G.Types.mult(m.type, e.types)));
     if (!ghost) pl.onDealt(dmg);
     pl.dmgDealt += dmg;
     if (m.burn) e.applyBurn(m.burn);
@@ -619,6 +624,8 @@ G.Combat = (() => {
           const last = p.hitLog.get(e.id) || -99;
           if (now - last < p.rehit) continue;
           p.hitLog.set(e.id, now);
+          // Las órbitas duran toda la partida: se olvidan los golpes viejos.
+          if (p.hitLog.size > 300) for (const [k, t] of p.hitLog) if (now - t > p.rehit) p.hitLog.delete(k);
         } else {
           if (p.hits.has(e.id)) continue;
           p.hits.add(e.id);
@@ -633,9 +640,10 @@ G.Combat = (() => {
           break;
         }
 
-        const k = p.mtype ? typeK(p.mtype, e) : 1;
+        const crit = isCrit(pl);
+        const k = (p.mtype ? typeK(p.mtype, e) : 1) * (crit ? CRIT_MUL : 1);
         e.hurt(p.dmg * k, p.color, p.vx || (e.x - pl.x), p.vy || (e.y - pl.y), p.knock,
-               p.mtype ? G.Types.label(G.Types.mult(p.mtype, e.types)) : null);
+               crit ? 'crit' : p.mtype ? G.Types.label(G.Types.mult(p.mtype, e.types)) : null);
         if (Math.random() < 0.5) G.FX.sp('impact', p.vis ? p.vis.pal : 'normal', e.x, e.y - e.bodyH * 0.5, { life: 0.12, scale: 1 });
         pl.dmgDealt += p.dmg * k;
         pl.onDealt(p.dmg * k);

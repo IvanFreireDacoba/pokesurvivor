@@ -10,19 +10,19 @@ G.LevelUp = (() => {
     { id: 'hp',   icon: 'heart', title: 'Vigor',        desc: '+20 de vida máxima (y la recupera).',
       apply: pl => pl.addMaxHp(20) },
     { id: 'atk',  icon: 'fist', title: 'Potencia',     desc: '+10% de daño con todos los movimientos.',
-      apply: pl => pl.atkMul *= 1.10 },
+      apply: pl => pl.atkMul *= 1.10, max: 40 },
     { id: 'spd',  icon: 'boot', title: 'Carrera',      desc: '+7% de velocidad de movimiento.',
-      apply: pl => pl.spdMul *= 1.07 },
+      apply: pl => pl.spdMul *= 1.07, max: 8 },
     { id: 'cd',   icon: 'clock', title: 'Reflejos',     desc: '-8% de recarga en todos los movimientos.',
-      apply: pl => pl.cdMul *= 0.92 },
+      apply: pl => pl.cdMul *= 0.92, max: 10 },
     { id: 'def',  icon: 'shield', title: 'Coraza',       desc: '+6% de reducción de daño recibido.',
-      apply: pl => pl.dmgReduce = Math.min(0.7, pl.dmgReduce + 0.06) },
+      apply: pl => pl.dmgReduce = Math.min(0.7, pl.dmgReduce + 0.06), max: 12 },
     { id: 'rgn',  icon: 'sprout', title: 'Síntesis',     desc: '+0.9 de vida regenerada por segundo.',
       apply: pl => pl.regenFlat += 0.9 },
     { id: 'mag',  icon: 'magnet', title: 'Imán',         desc: '+30% de radio de recogida de experiencia.',
-      apply: pl => pl.magnet *= 1.30 },
+      apply: pl => pl.magnet *= 1.30, max: 6 },
     { id: 'xp',   icon: 'book', title: 'Aprendizaje',  desc: '+12% de experiencia ganada.',
-      apply: pl => pl.xpMul *= 1.12 },
+      apply: pl => pl.xpMul *= 1.12, max: 8 },
     { id: 'heal', icon: 'berry', title: 'Baya Zidra',   desc: 'Recupera el 45% de tu vida ahora mismo.',
       apply: pl => pl.heal(pl.maxHp * 0.45) }
   ];
@@ -37,7 +37,7 @@ G.LevelUp = (() => {
       // llenar los 4 huecos con ellos deja la run sin salida.
       const buffs = pl.moves.filter(m => m.kind === 'buff').length;
       const pool = G.Moves.poolFor(pl.mon).filter(id =>
-        !pl.hasMove(id) && !(buffs >= 2 && G.Moves.BY_ID[id].kind === 'buff'));
+        !pl.hasMove(id) && !(pl.banned && pl.banned.has(id)) && !(buffs >= 2 && G.Moves.BY_ID[id].kind === 'buff'));
       for (const id of G.U.pickN(pool, 6)) {
         const d = G.Moves.BY_ID[id];
         out.push({
@@ -85,7 +85,11 @@ G.LevelUp = (() => {
 
     // --- stats ---
     // Las que desbloquean una evolución salen siempre y con aviso.
-    const pickStats = G.U.pickN(STATS.filter(s => !waiting[s.id]), 5).concat(STATS.filter(s => waiting[s.id]));
+    // Cada mejora tiene un tope de veces (`max`): en partidas muy largas se
+    // acumulaban sin fin (velocidad, recarga y experiencia por las nubes) y el
+    // juego acababa colgándose. Las que piden una evolución salen siempre.
+    const room = s => !s.max || (pl.statsTaken[s.id] || 0) < s.max;
+    const pickStats = G.U.pickN(STATS.filter(s => !waiting[s.id] && room(s)), 5).concat(STATS.filter(s => waiting[s.id]));
     for (const s of pickStats) {
       const evoFor = waiting[s.id];
       out.push({
