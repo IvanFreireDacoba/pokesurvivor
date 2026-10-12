@@ -98,7 +98,10 @@ G.Pad = (() => {
   }
 
   function jugando() {
-    return G.Game && G.Game.state === 'playing' && !(G.SettingsUI && G.SettingsUI.isOpen);
+    // En grupo la pausa no para el juego ('playing' con la pausa abierta): el mando va al menú.
+    const pausa = document.getElementById('scr-pause');
+    return G.Game && G.Game.state === 'playing' && !(G.SettingsUI && G.SettingsUI.isOpen)
+      && !(pausa && !pausa.classList.contains('hidden'));
   }
 
   // Teclas sintéticas: así el juego las trata igual que el teclado.
@@ -125,10 +128,30 @@ G.Pad = (() => {
     return !!t && (t === el || el.contains(t) || t.contains(el));
   }
 
+  // Pantallas que se abren ENCIMA de una partida. Mientras dura la partida el
+  // mando solo navega dentro de la que esté abierta: si no, en grupo (cuando
+  // otro elige carta o fusión el estado no es 'playing') A y la cruceta
+  // acababan en los botones del HUD o en «Salir de la partida» de la pausa,
+  // y el jugador se salía del cooperativo sin querer.
+  const EN_PARTIDA = ['playing', 'paused', 'levelup', 'held', 'choice'];
+  const ENCIMA = ['scr-settings', 'scr-levelup', 'scr-item', 'scr-bond', 'scr-pause'];
+
+  /** Dónde se puede navegar ahora: el documento, la pantalla abierta sobre la partida, o nada. */
+  function ambito() {
+    if (!G.Game || !EN_PARTIDA.includes(G.Game.state)) return document;
+    for (const id of ENCIMA) {
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('hidden')) return el;
+    }
+    return null;
+  }
+
   function pulsables() {
-    const todos = [...document.querySelectorAll('button, a[href], input, select, textarea, [onclick], [role="button"], .card, [tabindex]')];
+    const raiz = ambito();
+    if (!raiz) return [];
+    const todos = [...raiz.querySelectorAll('button, a[href], input, select, textarea, [onclick], [role="button"], .card, [tabindex]')];
     // Además, todo lo que el CSS marca como clicable (cursor: pointer).
-    for (const el of document.querySelectorAll('body *')) {
+    for (const el of raiz.querySelectorAll(raiz === document ? 'body *' : '*')) {
       if (todos.includes(el)) continue;
       if (getComputedStyle(el).cursor === 'pointer' && (!el.parentElement || getComputedStyle(el.parentElement).cursor !== 'pointer')) todos.push(el);
     }
@@ -151,7 +174,9 @@ G.Pad = (() => {
   function mover(dx, dy) {
     const lista = pulsables();
     if (!lista.length) { marcar(null); return; }
-    if (!foco || !lista.includes(foco)) { marcar(lista[0]); return; }
+    // Al entrar en una pantalla, el foco empieza en lo principal (Continuar, la
+    // primera carta...), nunca en lo primero que aparezca (p. ej. «Salir»).
+    if (!foco || !lista.includes(foco)) { marcar(lista.find(el => el.matches('.btn.gold, .card')) || lista[0]); return; }
     const o = centro(foco);
     let mejor = null, md = Infinity;
     for (const el of lista) {
@@ -180,6 +205,10 @@ G.Pad = (() => {
     dirPrev = clave;
 
     if (foco && !document.contains(foco)) foco = null;
+    if (foco) {                                      // pantalla cerrada o fuera del ámbito
+      const raiz = ambito();
+      if (!raiz || !raiz.contains(foco) || !visible(foco)) marcar(null);
+    }
     if (pulsado('a')) {
       if (!foco || !visible(foco)) mover(0, 1);
       else if (/^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) foco.focus();
