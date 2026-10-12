@@ -7,6 +7,8 @@
  */
 G.CHANGELOG = [
   { d: '2026-10-12', title: ['Partidas sin límite y grietas con menos azar', 'Endless runs and less random rifts'], new: [
+    ['El juego se actualiza solo cuando sale una versión nueva: si estás en el menú, a los 5 segundos; si estás jugando, al acabar la partida (sin perder nada).',
+     'The game now updates itself when a new version is out: within 5 seconds if you are in the menu, or after your run if you are playing (without losing anything).'],
     ['Botón de Novedades (esta ventana) con todos los cambios del juego.',
      'A "What\'s new" button (this window) with every change to the game.'],
     ['Números más fáciles de leer: el 2, el 5 y el 8 ya no se confunden.',
