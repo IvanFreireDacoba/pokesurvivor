@@ -9,6 +9,9 @@ G.CHANGELOG = [
   { d: '2026-10-13', title: ['Todas las partidas cuentan', 'Every run counts'], chg: [
     ['Ya no hay comprobaciones contra trampas: todas las partidas cuentan para el ranking y los récords, y no se pierde nada de lo ganado.',
      'No more anti-cheat checks: every run counts for the leaderboard and your records, and nothing you earn is taken away.']
+  ], fix: [
+    ['Cooperativo: un corte de conexión de unos segundos (Wi-Fi que ahorra energía, móvil que cambia de red...) ya no te saca de la partida con «La sala se ha cerrado» mientras los demás siguen jugando.',
+     'Co-op: a connection drop of a few seconds (power-saving Wi-Fi, a phone switching networks...) no longer kicks you out with "The room has been closed" while the others keep playing.']
   ] },
   { d: '2026-10-12', title: ['Tiempo extra y grietas con menos azar', 'Overtime and less random rifts'], new: [
     ['Tiempo extra: desde el minuto 60 los Pokémon salvajes se vuelven cada vez más fuertes (más vida y más daño), y cada vez más deprisa. Antes, con las mejoras al máximo, algunas partidas no acababan nunca; ahora las mejores rondarán la hora y media.',
