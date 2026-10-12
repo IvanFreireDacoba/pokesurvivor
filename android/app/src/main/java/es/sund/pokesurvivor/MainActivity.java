@@ -53,14 +53,38 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        Registro.iniciar(this);
+        Thread.UncaughtExceptionHandler previo = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((hilo, e) -> {
+            Registro.anotar("app", "CIERRE por excepción: " + android.util.Log.getStackTraceString(e));
+            Registro.ahora();
+            try { Thread.sleep(300); } catch (InterruptedException ignored) { /* nada */ }
+            if (previo != null) previo.uncaughtException(hilo, e);
+        });
+        vigilarRed();
 
         // /juego/<ruta> -> assets/juego/<ruta>
         WebViewAssetLoader.AssetsPathHandler assets = new WebViewAssetLoader.AssetsPathHandler(this);
-        WebViewAssetLoader cargador = new WebViewAssetLoader.Builder()
+        cargador = new WebViewAssetLoader.Builder()
                 .addPathHandler("/juego/", ruta -> assets.handle("juego/" + ruta))
                 .build();
 
-        web = new WebView(this);
+        web = crearWeb();
+        setContentView(web);
+        pantallaCompleta();
+        if (savedInstanceState != null) {
+            web.restoreState(savedInstanceState);
+        } else {
+            web.loadUrl(INICIO);
+            Actualizador.comprobar(this);
+        }
+    }
+
+    private WebViewAssetLoader cargador;
+
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
+    private WebView crearWeb() {
+        WebView web = new WebView(this);
         WebSettings ajustes = web.getSettings();
         ajustes.setJavaScriptEnabled(true);
         ajustes.setDomStorageEnabled(true);
@@ -69,8 +93,41 @@ public class MainActivity extends Activity {
         ajustes.setAllowFileAccess(false);
         ajustes.setAllowContentAccess(false);
         web.setBackgroundColor(0xFF0A1430);
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage m) {
+                // Errores y avisos, y los mensajes propios del juego ("[Social] ...").
+                String t = m.message();
+                if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR
+                        || m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.WARNING
+                        || (t != null && t.startsWith("["))) {
+                    Registro.anotar("juego", m.messageLevel() + " " + t
+                            + (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR ? " (" + m.sourceId() + ":" + m.lineNumber() + ")" : ""));
+                }
+                return false;
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                view.evaluateJavascript(DIAGNOSTICO, null);
+            }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detalle) {
+                // El motor web se ha caído (memoria...): sin esto, Android cierra la app entera.
+                boolean muerte = Build.VERSION.SDK_INT >= 26 && detalle.didCrash();
+                Registro.anotar("app", "CAÍDA del motor web (" + (muerte ? "fallo" : "falta de memoria") + "): se recarga el juego");
+                Registro.ahora();
+                if (view == MainActivity.this.web) {
+                    view.destroy();
+                    MainActivity.this.web = crearWeb();
+                    setContentView(MainActivity.this.web);
+                    MainActivity.this.web.loadUrl(INICIO);
+                }
+                return true;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return cargador.shouldInterceptRequest(request.getUrl());
@@ -92,13 +149,45 @@ public class MainActivity extends Activity {
         });
         // Su mera existencia le dice al juego que va dentro de la app (sin service worker).
         web.addJavascriptInterface(new Puente(), "PSNativo");
-        setContentView(web);
-        pantallaCompleta();
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState);
-        } else {
-            web.loadUrl(INICIO);
-            Actualizador.comprobar(this);
+        return web;
+    }
+
+    /**
+     * Diagnóstico dentro del juego (va al registro por la consola): cambios
+     * de estado de la partida, avisos en pantalla, la sala y la conexión con
+     * cada jugador. Solo lee; no cambia nada del juego.
+     */
+    private static final String DIAGNOSTICO = "(function(){if(window.__diag)return;window.__diag=1;"
+            + "var log=function(t){console.log('[Diag] '+t)};"
+            + "var esperar=setInterval(function(){if(!window.G||!G.UI||!G.Game||!G.Social||!G.Net)return;clearInterval(esperar);"
+            + "var t0=G.UI.toast;G.UI.toast=function(x){if(x)log('aviso: '+x);return t0.apply(this,arguments)};"
+            + "var est='';setInterval(function(){var e=G.Game.state+(G.Coop&&G.Coop.active?' coop('+G.Coop.players().length+')':'');"
+            + "if(e!==est){est=e;log('estado: '+e)}},500);"
+            + "G.Social.on(function(w){var r=G.Social.room;if(w!=='room'||!r)log('sala: '+w+(r?' '+r.id+' miembros '+r.members.length+(r.isHost?' (anfitrión)':''):' (sin sala)'))});"
+            + "G.Net.onPeer(function(u,m){log('red: '+String(u).slice(0,6)+' '+m)});"
+            + "addEventListener('offline',function(){log('navegador SIN conexión')});addEventListener('online',function(){log('navegador con conexión')});"
+            + "log('diagnóstico activo')},500)})()";
+
+    /** Cortes de red del sistema, para cuadrarlos con lo que pasa en el juego. */
+    private void vigilarRed() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null || Build.VERSION.SDK_INT < 24) {
+                return;
+            }
+            cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(android.net.Network n) {
+                    Registro.anotar("red", "red disponible");
+                }
+
+                @Override
+                public void onLost(android.net.Network n) {
+                    Registro.anotar("red", "RED PERDIDA");
+                }
+            });
+        } catch (RuntimeException e) {
+            Registro.anotar("red", "sin vigilancia de red: " + e);
         }
     }
 
@@ -280,6 +369,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        Registro.anotar("app", "app en segundo plano");
+        Registro.ahora();
         wifiSinAhorro(false);
         // Suelta todo: si no, un botón pulsado al salir se queda "pegado".
         botones.clear();
@@ -295,6 +386,7 @@ public class MainActivity extends Activity {
         super.onResume();
         web.onResume();
         wifiSinAhorro(true);
+        Registro.anotar("app", "app delante · Wi-Fi " + (wifi != null && wifi.isHeld() ? "sin ahorro" : "normal"));
     }
 
     @Override
