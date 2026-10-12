@@ -6,7 +6,13 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
-  { d: '2026-10-12', title: ['Partidas sin límite y grietas con menos azar', 'Endless runs and less random rifts'], new: [
+  { d: '2026-10-13', title: ['Todas las partidas cuentan', 'Every run counts'], chg: [
+    ['Ya no hay comprobaciones contra trampas: todas las partidas cuentan para el ranking y los récords, y no se pierde nada de lo ganado.',
+     'No more anti-cheat checks: every run counts for the leaderboard and your records, and nothing you earn is taken away.']
+  ] },
+  { d: '2026-10-12', title: ['Tiempo extra y grietas con menos azar', 'Overtime and less random rifts'], new: [
+    ['Tiempo extra: desde el minuto 60 los Pokémon salvajes se vuelven cada vez más fuertes (más vida y más daño), y cada vez más deprisa. Antes, con las mejoras al máximo, algunas partidas no acababan nunca; ahora las mejores rondarán la hora y media.',
+     'Overtime: from minute 60 on, wild Pokémon keep getting stronger (more HP and more damage), faster and faster. Before, with maxed upgrades, some runs never ended; now the best ones will last about an hour and a half.'],
     ['El juego se actualiza solo cuando sale una versión nueva: si estás en el menú, a los 5 segundos; si estás jugando, al acabar la partida (sin perder nada).',
      'The game now updates itself when a new version is out: within 5 seconds if you are in the menu, or after your run if you are playing (without losing anything).'],
     ['Botón de Novedades (esta ventana) con todos los cambios del juego.',
@@ -20,6 +26,8 @@ G.CHANGELOG = [
     ['Atajos de movimientos (en Mejoras, para cada Pokémon): elige qué movimiento va siempre en cada hueco, por ejemplo Confusión siempre en el 1, para la memoria muscular.',
      'Move shortcuts (in Upgrades, for each Pokémon): choose which move always goes in each slot, for example Confusion always on 1, for muscle memory.']
   ], chg: [
+    ['Avalancha hace menos daño (21 en vez de 26): derrotaba casi el doble que la media de los movimientos.',
+     'Rock Slide deals less damage (21 instead of 26): it defeated almost twice as many as the average move.'],
     ['Los cambios de cartas de nivel ya no se ganan venciendo jefes: tienes 1 gratis por run y el resto se compra en Mejoras.',
      'Level-up card rerolls are no longer earned by defeating bosses: you get 1 free per run and can buy more in Upgrades.'],
     ['Los legendarios de grieta ya no dan siempre tickets x10: dan uno la mitad de las veces (antes daban 2 siempre y salían demasiados).',
@@ -47,6 +55,8 @@ G.CHANGELOG = [
     ['Las runs de menos de 1 minuto ya no cuentan para el ranking.',
      'Runs shorter than 1 minute no longer count for the leaderboard.']
   ], fix: [
+    ['Quitadas del ranking las marcas rotas por el fallo del minuto 84 (el reloj seguía corriendo con el juego parado) y alguna imposible. Si tenías una, tu próxima partida vuelve a contar.',
+     'Removed broken records from the leaderboard caused by the minute 84 bug (the clock kept running while the game was frozen) and a few impossible ones. If you had one, your next run counts again.'],
     ['iPhone (Safari y Chrome): a veces no se podía cambiar de movimiento tocando los iconos, sobre todo con el otro dedo en el joystick. Además los botones quedan por encima de la barra de inicio.',
      'iPhone (Safari and Chrome): sometimes you could not switch moves by tapping the icons, especially with your other finger on the joystick. Buttons also sit above the home bar now.'],
     ['En las partidas de más de 84 minutos la pantalla se quedaba en negro, el juego se paraba o empezabas a subir de nivel sin fin. Ya puedes jugar todo lo que aguantes.',

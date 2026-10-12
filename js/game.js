@@ -133,10 +133,7 @@ G.Game = (() => {
     // Hojas de sprites locales: el compañero y los primeros enemigos.
     G.Sprites.preload([mon.dex], 8000, pl.shiny);
     G.Audio.music(G.BIOME_MUSIC[0]);
-    // Para el ranking: el servidor apunta cuándo empezó la partida.
-    if (!coop || G.Coop.isHost) G.Ranking.runStarted(coop ? 'g' : 's');
     deathT = 0;
-    G.Guard.start(!!coop);
 
     state = 'playing';
   }
@@ -289,19 +286,15 @@ G.Game = (() => {
       recogidas: pl.coins
     };
     const coins = Math.round((parts.tiempo + parts.derrotados + parts.jefes + parts.recogidas) * mul);
-    // Anti-trampas (core/guard.js): si algo no cuadra, no cuenta para el ranking ni los récords.
-    const clean = G.Guard.end();
-    const record = clean && time > save.stats.bestTime;
+    const record = time > save.stats.bestTime;
 
     save.coins += coins;
     bankTickets(false);
     save.stats.runs++;
     save.stats.totalKills += pl.kills;
-    if (clean) {
-      save.stats.bestTime = Math.max(save.stats.bestTime, Math.floor(time));
-      if (coop) save.stats.bestGroupTime = Math.max(save.stats.bestGroupTime || 0, Math.floor(time));
-      save.stats.bestLevel = Math.max(save.stats.bestLevel, pl.level);
-    }
+    save.stats.bestTime = Math.max(save.stats.bestTime, Math.floor(time));
+    if (coop) save.stats.bestGroupTime = Math.max(save.stats.bestGroupTime || 0, Math.floor(time));
+    save.stats.bestLevel = Math.max(save.stats.bestLevel, pl.level);
     save.stats.coinsEarned += coins;
     G.Progress.event('runEnd', { time, level: pl.level, coins: pl.coins, types: pl.mon.types, group: coop });
     G.Progress.checkAch();
@@ -310,8 +303,7 @@ G.Game = (() => {
 
     // Ranking: en solitario cada uno lo suyo; en grupo lo sube el anfitrión.
     const mark = { t: Math.floor(time), lv: pl.level, kills: pl.kills };
-    if (!clean) G.UI.toast('Esta partida no cuenta para el ranking: se ha detectado algo raro');
-    else if (!coop) G.Ranking.submitSolo(Object.assign(mark, { dex: pl.dex, shiny: pl.shiny }));
+    if (!coop) G.Ranking.submitSolo(Object.assign(mark, { dex: pl.dex, shiny: pl.shiny }));
     else if (wasHost) G.Ranking.submitGroup(Object.assign(mark, { members: team }));
 
     G.RunUI.showOver({
@@ -551,7 +543,6 @@ G.Game = (() => {
   function update(dt) {
     const coop = G.Coop.active;
     if (flashT > 0) flashT -= dt;
-    G.Guard.tick(dt, time, pl);
     // Tras caer, deja que se vea la animación de Faint antes del resumen.
     // (En la arena de la grieta no: allí caer sólo te echa de vuelta.)
     if (pl.dead && !coop && !G.Rift.inArena) {
@@ -791,14 +782,14 @@ G.Game = (() => {
   return {
     init, startRun, everyone, levelXp, flash, offerBond,
     /** Para pruebas: salta el reloj de la run. */
-    debugTime(t) { G.Guard.flag('debug'); time = t; },
+    debugTime(t) { time = t; },
     /** Para grabar vídeos: cámara lenta (0,5 = mitad de velocidad). */
-    debugSpeed(k) { if (k > 1) G.Guard.flag('debug'); speedK = k; },
+    debugSpeed(k) { speedK = k; },
     togglePause,
     /** Abandona la partida en curso (p. ej. al cerrar sesión desde Ajustes). */
     quit() { if (state !== 'ui' && state !== 'over') quitRun(); },
     /** Para grabar vídeos: abre las cartas de subir de nivel. */
-    debugLevelUp() { G.Guard.flag('debug'); pl.level++; pendingLevels++; },
+    debugLevelUp() { pl.level++; pendingLevels++; },
     toUI() { state = 'ui'; Backdrop.restore(); },
     get state() { return state; }, get player() { return pl; }, st
   };
