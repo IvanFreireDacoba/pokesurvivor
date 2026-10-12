@@ -1,0 +1,36 @@
+{
+  "name": "pokesurvivor",
+  "productName": "PokeSurvivor",
+  "version": "1.0.0",
+  "description": "PokéSurvivor para escritorio Linux y Steam Deck",
+  "main": "main.js",
+  "license": "MIT",
+  "author": "JPTER78 (juego) e Iván Freire (versión de escritorio)",
+  "homepage": "https://github.com/JPTER78/pokesurvivor",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux AppImage --x64"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "electron": "43.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "es.sund.pokesurvivor",
+    "productName": "PokeSurvivor",
+    "artifactName": "PokeSurvivor-${version}-x86_64.${ext}",
+    "directories": { "output": "dist", "buildResources": "recursos" },
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [{ "from": "build/juego", "to": "juego" }],
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Game",
+      "icon": "recursos/icono.png",
+      "executableName": "pokesurvivor"
+    },
+    "publish": null
+  }
+}
