@@ -22,6 +22,20 @@ G.Touch = (() => {
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
     cv.addEventListener('contextmenu', e => e.preventDefault());
+    // iPhone: la pulsación larga sobre el juego abría la lupa y el menú de
+    // "Copiar / Seleccionar todo". Cortar el toque aquí lo evita (los eventos
+    // pointer, que son los que usa el joystick, siguen llegando).
+    // Además, los botones (movimientos, pausa) se pulsan también desde aquí: en
+    // iPhone (Safari y Chrome usan WebKit) a veces no llegaba el pointerdown de
+    // un segundo dedo con el otro en el joystick y no se podía cambiar de movimiento.
+    cv.addEventListener('touchstart', e => {
+      if (e.cancelable) e.preventDefault();
+      if (!active) { active = true; document.body.classList.add('touch'); }
+      for (const t of e.changedTouches) { const b = hit(t.clientX, t.clientY); if (b) press(b); }
+    }, { passive: false });
+    document.addEventListener('selectstart', e => {
+      if (!e.target.closest || !e.target.closest('input, textarea, [contenteditable]')) e.preventDefault();
+    });
     addEventListener('blur', reset);
     document.addEventListener('visibilitychange', reset);
   }
@@ -34,11 +48,20 @@ G.Touch = (() => {
     return null;
   }
 
+  // Un mismo toque llega por touchstart y por pointerdown: se pulsa una sola vez.
+  let lastKey = '', lastAt = 0;
+  function press(b) {
+    const k = Math.round(b.x) + ',' + Math.round(b.y), now = performance.now();
+    if (k === lastKey && now - lastAt < 350) return;
+    lastKey = k; lastAt = now;
+    b.fn();
+  }
+
   function down(e) {
     const touchy = e.pointerType !== 'mouse';
     if (touchy && !active) { active = true; document.body.classList.add('touch'); }
     const b = hit(e.clientX, e.clientY);
-    if (b) { e.preventDefault(); b.fn(); return; }
+    if (b) { e.preventDefault(); press(b); return; }
     if (!touchy || stick || !G.Game || G.Game.state !== 'playing') return;
     e.preventDefault();
     stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
@@ -65,6 +88,23 @@ G.Touch = (() => {
     return [dx / d * k, dy / d * k];
   }
 
+  /** Márgenes del iPhone (barra de inicio abajo, muesca a los lados), en px. */
+  let safe = null;
+  function safeArea() {
+    if (safe) return safe;
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;' +
+      'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+    document.body.appendChild(d);
+    const cs = getComputedStyle(d);
+    safe = { top: parseFloat(cs.paddingTop) || 0, right: parseFloat(cs.paddingRight) || 0,
+             bottom: parseFloat(cs.paddingBottom) || 0, left: parseFloat(cs.paddingLeft) || 0 };
+    d.remove();
+    return safe;
+  }
+  addEventListener('resize', () => { safe = null; });
+  addEventListener('orientationchange', () => { safe = null; });
+
   /** El HUD vacía y vuelve a registrar sus botones cada fotograma. */
   function clearButtons() { buttons = []; }
   function addButton(x, y, w, h, fn, pad = 6) { buttons.push({ x, y, w, h, fn, pad }); }
@@ -88,6 +128,6 @@ G.Touch = (() => {
     ctx.restore();
   }
 
-  return { init, vector, draw, clearButtons, addButton, reset,
+  return { init, vector, draw, clearButtons, addButton, reset, safeArea,
            get active() { return active; }, get stick() { return stick; } };
 })();
