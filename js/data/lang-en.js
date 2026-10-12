@@ -404,6 +404,8 @@ G.I18n.add({
   'ataque anterior / siguiente': 'previous / next move', 'elegir carta al subir de nivel': 'choose a card when leveling up',
   'Pon el dedo en cualquier parte y arrastra para moverte: el joystick aparece donde tocas. Toca un ataque de abajo para cambiarlo y el botón de arriba a la derecha para pausar. Se juega en horizontal.': 'Put your finger anywhere and drag to move: the joystick appears where you touch. Tap a move at the bottom to switch to it and the top-right button to pause. Play in landscape.',
   'Apodo': 'Nickname', 'Es único y no se puede cambiar.': 'It\'s unique and can\'t be changed.', 'Tipo de cuenta': 'Account type', 'Partida': 'Save',
+  'Versión sin conexión: tus cuentas y partidas se guardan sólo en este equipo. Sin amigos ni ranking.': 'Offline version: your accounts and games are only saved on this device. No friends or ranking.',
+  'Cuenta de este equipo': 'This device\'s account',
   'Cuenta de este navegador': 'This browser\'s account', 'Nombre y contraseña': 'Name and password', 'Google': 'Google',
   'Cerrar sesión': 'Log out', 'Borrar cuenta': 'Delete account', 'Crear cuenta o entrar': 'Sign up or log in',
   'Estás jugando como': 'You\'re playing as', 'Estás jugando como {x}: tu progreso no se guarda al salir.': 'You\'re playing as a {x}: your progress isn\'t saved when you leave.',

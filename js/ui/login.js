@@ -32,6 +32,7 @@ G.LoginUI = (() => {
   /** Explica dónde se guarda la partida según el modo de la base de datos. */
   function modeNote() {
     if (G.DB.mode === 'cloud') return 'Tu partida se guarda en la nube: entra desde cualquier ordenador. Como invitado no se guarda.';
+    if (G.DB.localReason === 'offline') return 'Versión sin conexión: tus cuentas y partidas se guardan sólo en este equipo. Sin amigos ni ranking.';
     const why = G.DB.localReason === 'file'
       ? 'Abierto desde un archivo: la partida sólo se guarda en este navegador. Para guardar en la nube, juega en la versión publicada.'
       : G.DB.localReason === 'config'

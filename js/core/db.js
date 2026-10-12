@@ -16,8 +16,9 @@
  *     pierde un Pokémon ni un shiny.
  *
  *   LOCAL (localStorage)
- *     Si no hay configuración o se abre con doble clic (file://). Igual que
- *     antes: cuentas y partidas sólo en este navegador.
+ *     Si no hay configuración, se abre con doble clic (file://) o es una
+ *     versión sin conexión (window.PSOffline, p. ej. la de escritorio
+ *     «Offline»: nunca carga Firebase). Cuentas y partidas sólo en este equipo.
  *       ps.accounts      { clave: { name, salt, hash, created } }
  *       ps.save.<clave>  partida de esa cuenta
  *       ps.session       última cuenta con sesión iniciada
@@ -33,7 +34,7 @@ G.DB = (() => {
   const NAME_DOMAIN = 'jugadores.pokesurvivor.net';   // sólo para el email interno
 
   let mode = 'local';       // 'cloud' | 'local'
-  let localReason = '';     // por qué no hay nube: 'file' | 'config' | 'error'
+  let localReason = '';     // por qué no hay nube: 'offline' | 'file' | 'config' | 'error'
   let user = null;          // nombre visible
   let key = null;           // clave local (minúsculas) o uid de Firebase
   let guest = false;
@@ -267,6 +268,7 @@ G.DB = (() => {
 
   async function initCloud() {
     const cfg = G.FIREBASE_CONFIG;
+    if (window.PSOffline) { localReason = 'offline'; return false; }
     if (!/^https?:$/.test(location.protocol)) { localReason = 'file'; return false; }
     if (!cfg || !cfg.apiKey || !cfg.projectId) { localReason = 'config'; return false; }
     await loadScript(SDK + 'firebase-app-compat.js');

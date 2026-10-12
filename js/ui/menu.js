@@ -38,6 +38,10 @@ G.MenuUI = (() => {
     const shiny = !!s.partnerShiny && G.DB.ownsShiny(mon.dex);
     G.UI.chrome(true);
     G.UI.show('scr-menu');
+    // Versión sin conexión: fuera lo que sólo funciona con la nube.
+    const sinRed = G.DB.localReason === 'offline';
+    document.querySelectorAll('#scr-menu [data-go="friends"], #scr-menu [data-go="rank"]')
+      .forEach(b => b.classList.toggle('hidden', sinRed));
     G.UI.sprite($('menu-partner'), mon.dex, { lively: true, scale: 4, hero: true, shiny });
     $('menu-partner').style.setProperty('--stage-c', shiny ? '#9ae6ff' : G.U.TYPE_COLOR[mon.types[0]]);
     $('menu-partner').classList.toggle('shiny', shiny);

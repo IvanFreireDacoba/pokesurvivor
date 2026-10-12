@@ -5,7 +5,12 @@
 // localStorage/IndexedDB funcionan igual que en la web. El mando lo lee el propio
 // juego con la Gamepad API (js/core/gamepad.js); en la Steam Deck, Steam Input
 // lo presenta como un mando de Xbox estándar.
-const { app, BrowserWindow, protocol, net, shell } = require('electron');
+//
+// Variante OFFLINE (compilar.sh ... offline, o --offline): el juego arranca en
+// su modo local (window.PSOffline: cuentas y partidas en este equipo, nunca
+// carga Firebase) y su sesión no puede salir a la red: solo llega a los
+// ficheros del propio juego. Así no se toca la nube ni el ranking del autor.
+const { app, BrowserWindow, net, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -14,6 +19,15 @@ const INICIO = `https://${HOST}/dev.html`;
 
 // Empaquetado: resources/juego. En desarrollo (npm start): build/juego.
 const RAIZ = app.isPackaged ? path.join(process.resourcesPath, 'juego') : path.join(__dirname, 'build', 'juego');
+
+function leerVariante() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, 'build'), 'variante.json'), 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+const OFFLINE = leerVariante().offline === true || process.argv.includes('--offline');
 
 // En el Modo Juego de la Steam Deck (gamescope) o con --fullscreen: pantalla completa.
 const PANTALLA_COMPLETA = process.env.SteamDeck === '1' || /gamescope/i.test(process.env.XDG_CURRENT_DESKTOP || '')
@@ -27,10 +41,13 @@ const TIPOS = {
   '.wav': 'audio/wav', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8'
 };
 
-function servirJuego() {
-  protocol.handle('https', (peticion) => {
+function servirJuego(sesion) {
+  sesion.protocol.handle('https', (peticion) => {
     const url = new URL(peticion.url);
-    if (url.host !== HOST) return net.fetch(peticion, { bypassCustomProtocolHandlers: true });
+    if (url.host !== HOST) {
+      return OFFLINE ? new Response('Versión sin conexión', { status: 503 })
+        : net.fetch(peticion, { bypassCustomProtocolHandlers: true });
+    }
     const relativa = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'dev.html';
     const fichero = path.resolve(RAIZ, relativa);
     if (!fichero.startsWith(RAIZ + path.sep) || !fs.existsSync(fichero)) {
@@ -44,17 +61,28 @@ function servirJuego() {
   });
 }
 
-function crearVentana() {
+/** Offline: cualquier petición que no sea al propio juego (http, ws, otros https...) se corta. */
+function cortarRed(sesion) {
+  const propio = `https://${HOST}/`;
+  sesion.webRequest.onBeforeRequest((detalles, responder) => {
+    const url = detalles.url;
+    responder({ cancel: !(url.startsWith(propio) || /^(data|blob|devtools|chrome-extension):/.test(url)) });
+  });
+}
+
+function crearVentana(sesion) {
   const ventana = new BrowserWindow({
     width: 1280,
     height: 800,
     fullscreen: PANTALLA_COMPLETA,
     backgroundColor: '#0a1430',
     autoHideMenuBar: true,
-    title: 'PokéSurvivor',
+    title: OFFLINE ? 'PokéSurvivor Offline' : 'PokéSurvivor',
     icon: path.join(RAIZ, 'assets/icons/icon-512.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      session: sesion,
+      additionalArguments: OFFLINE ? ['--ps-offline'] : [],
       contextIsolation: true,
       sandbox: true
     }
@@ -83,6 +111,18 @@ function crearVentana() {
   ventana.loadURL(INICIO);
 }
 
+// Chromium escribe localStorage (cuentas y partidas locales) a disco con
+// retraso: si Steam cierra el juego con una señal, lo último se perdía. Se
+// vuelca al salir, al recibir la señal y cada 15 s.
+function guardarAlCerrar(sesion) {
+  const volcar = () => { try { sesion.flushStorageData(); } catch (e) { /* cerrando */ } };
+  setInterval(volcar, 15000);
+  app.on('before-quit', volcar);
+  for (const senal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
+    process.on(senal, () => { volcar(); app.quit(); });
+  }
+}
+
 // Autoactualización: solo si la build trae su app-update.yml (se compila con
 // una URL de actualizaciones, ver README) y se ejecuta como AppImage.
 function buscarActualizaciones() {
@@ -95,8 +135,13 @@ function buscarActualizaciones() {
 }
 
 app.whenReady().then(() => {
-  servirJuego();
-  crearVentana();
+  // La offline va en su propia sesión: el bloqueo de red no afecta al
+  // proceso principal (autoactualización desde sund.es, si hay conexión).
+  const sesion = OFFLINE ? session.fromPartition('persist:offline') : session.defaultSession;
+  servirJuego(sesion);
+  if (OFFLINE) cortarRed(sesion);
+  guardarAlCerrar(sesion);
+  crearVentana(sesion);
   buscarActualizaciones();
 });
 

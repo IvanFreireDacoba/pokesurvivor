@@ -1,7 +1,7 @@
 {
   "name": "pokesurvivor",
   "productName": "PokeSurvivor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "PokéSurvivor para escritorio Linux y Steam Deck",
   "main": "main.js",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "artifactName": "PokeSurvivor-${version}-x86_64.${ext}",
     "directories": { "output": "dist", "buildResources": "recursos" },
     "files": ["main.js", "preload.js", "package.json"],
-    "extraResources": [{ "from": "build/juego", "to": "juego" }],
+    "extraResources": [{ "from": "build/juego", "to": "juego" }, { "from": "build/variante.json", "to": "variante.json" }],
     "linux": {
       "target": ["AppImage"],
       "category": "Game",
