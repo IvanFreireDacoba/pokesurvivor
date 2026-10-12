@@ -2,6 +2,8 @@ package es.sund.pokesurvivor;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Choreographer;
@@ -243,8 +245,42 @@ public class MainActivity extends Activity {
 
     // ---------------- ciclo de vida ----------------
 
+    // ---------------- Wi-Fi ----------------
+
+    /**
+     * Sin esto, el ahorro de energía del Wi-Fi de las consolas (Retroid...)
+     * corta la conexión unos segundos de vez en cuando. En el cooperativo eso
+     * basta para que Firebase dé al jugador por desconectado y lo saque de la
+     * sala («La sala se ha cerrado»), aunque el juego siga en pantalla. Mientras
+     * la app está delante, el Wi-Fi va en modo baja latencia (como los juegos online).
+     */
+    private WifiManager.WifiLock wifi;
+
+    @SuppressWarnings("deprecation")
+    private void wifiSinAhorro(boolean activar) {
+        try {
+            if (wifi == null) {
+                WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                if (wm == null) {
+                    return;
+                }
+                int modo = Build.VERSION.SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+                wifi = wm.createWifiLock(modo, "PokeSurvivor:juego");
+                wifi.setReferenceCounted(false);
+            }
+            if (activar) {
+                wifi.acquire();
+            } else if (wifi.isHeld()) {
+                wifi.release();
+            }
+        } catch (RuntimeException ignored) {
+            // sin Wi-Fi o sin permiso: se juega igual
+        }
+    }
+
     @Override
     protected void onPause() {
+        wifiSinAhorro(false);
         // Suelta todo: si no, un botón pulsado al salir se queda "pegado".
         botones.clear();
         gatillos.clear();
@@ -258,6 +294,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        wifiSinAhorro(true);
     }
 
     @Override

@@ -8,8 +8,8 @@ android {
         applicationId 'es.sund.pokesurvivor'
         minSdk 24
         targetSdk 34
-        versionCode 6
-        versionName '1.0.5'
+        versionCode 7
+        versionName '1.0.6'
         // Autoactualización: URL de un version.json con {versionCode, versionName,
         // apkUrl, apkSha1}. Vacía = sin autoactualización. Se pasa al compilar:
         //   gradle :app:assembleDebug -PurlActualizaciones=https://.../version.json
