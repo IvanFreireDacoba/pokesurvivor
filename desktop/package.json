@@ -1,7 +1,7 @@
 {
   "name": "pokesurvivor",
   "productName": "PokeSurvivor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "PokéSurvivor para escritorio Linux y Steam Deck",
   "main": "main.js",
   "license": "MIT",
