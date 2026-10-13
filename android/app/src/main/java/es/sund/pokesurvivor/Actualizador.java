@@ -49,7 +49,12 @@ final class Actualizador {
                 if (info.getLong("versionCode") <= versionInstalada(activity)) {
                     return;
                 }
-                String apkUrl = new URL(new URL(url), info.getString("apkUrl")).toString();
+                URL base = new URL(url), apk = new URL(base, info.getString("apkUrl"));
+                // La APK solo se baja del mismo sitio (https) que publica version.json.
+                if (!"https".equals(apk.getProtocol()) || !apk.getHost().equals(base.getHost())) {
+                    return;
+                }
+                String apkUrl = apk.toString();
                 String sha1 = info.getString("apkSha1");
                 aviso(activity, "Descargando PokéSurvivor " + info.optString("versionName") + "…");
 
@@ -104,13 +109,21 @@ final class Actualizador {
         try (InputStream in = con.getInputStream(); FileOutputStream out = new FileOutputStream(destino)) {
             byte[] trozo = new byte[64 * 1024];
             int n;
+            long total = 0;
             while ((n = in.read(trozo)) != -1) {
+                total += n;
+                if (total > MAX_APK) {
+                    throw new IOException("APK demasiado grande");
+                }
                 out.write(trozo, 0, n);
             }
         } finally {
             con.disconnect();
         }
     }
+
+    /** Tope de la descarga (la APK pesa ~80 MB con todos los sprites): un servidor roto no llena la caché. */
+    private static final long MAX_APK = 300L * 1024 * 1024;
 
     private static String sha1De(File fichero) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");

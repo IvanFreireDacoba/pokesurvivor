@@ -31,16 +31,18 @@ sobre el juego apunta al ratón.
 
 ## Compilar
 
-    cd android && gradle :app:assembleDebug    # SDK 34, Gradle 8.7, JDK 17+
+    cd android && gradle :app:assembleRelease    # SDK 34, Gradle 8.7, JDK 17+
 
 - **Firma:** pon un keystore en `android/app/release.keystore` (no se sube
   al repositorio; las contraseñas están en `app/build.gradle`). Usa siempre
   el mismo para que las actualizaciones se instalen encima.
 - **Autoactualización (opcional):**
-  `gradle :app:assembleDebug -PurlActualizaciones=https://tu-web/version.json`.
+  `gradle :app:assembleRelease -PurlActualizaciones=https://tu-web/version.json`.
   Ese JSON es `{"versionCode", "versionName", "apkUrl", "apkSha1"}`. Al abrir la
   app se comprueba; si hay versión nueva, se descarga, se verifica el SHA-1 y
   se abre el instalador. Sin la propiedad, la APK no se autoactualiza.
+- **Siempre la build *release*:** la *debug* es depurable (con USB se podrían
+  leer los datos de la app, incluida la sesión de Firebase).
 
 La tarea `copiarJuego` mete en la APK el juego de la raíz del repositorio.
 

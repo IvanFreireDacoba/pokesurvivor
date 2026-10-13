@@ -110,7 +110,10 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-                view.evaluateJavascript(DIAGNOSTICO, null);
+                // Solo en el propio juego (nunca en otra página).
+                if (url != null && url.startsWith("https://appassets.androidplatform.net/juego/")) {
+                    view.evaluateJavascript(DIAGNOSTICO, null);
+                }
             }
 
             @Override
@@ -136,7 +139,12 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 // Enlaces externos (créditos, apoyar...): fuera de la app, al navegador.
+                // Solo webs (http/https): nunca intent:, market:, tel:... aunque el juego los enlazara.
                 if (!"appassets.androidplatform.net".equals(request.getUrl().getHost())) {
+                    String esquema = request.getUrl().getScheme();
+                    if (!"https".equals(esquema) && !"http".equals(esquema)) {
+                        return true;
+                    }
                     try {
                         startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, request.getUrl()));
                     } catch (Exception ignored) {
@@ -155,7 +163,8 @@ public class MainActivity extends Activity {
     /**
      * Diagnóstico dentro del juego (va al registro por la consola): cambios
      * de estado de la partida, avisos en pantalla, la sala y la conexión con
-     * cada jugador. Solo lee; no cambia nada del juego.
+     * los demás. Solo lee; no cambia nada del juego. Sin identificadores (ni
+     * de la sala ni de los jugadores): el registro está en Descargas.
      */
     private static final String DIAGNOSTICO = "(function(){if(window.__diag)return;window.__diag=1;"
             + "var log=function(t){console.log('[Diag] '+t)};"
@@ -163,8 +172,8 @@ public class MainActivity extends Activity {
             + "var t0=G.UI.toast;G.UI.toast=function(x){if(x)log('aviso: '+x);return t0.apply(this,arguments)};"
             + "var est='';setInterval(function(){var e=G.Game.state+(G.Coop&&G.Coop.active?' coop('+G.Coop.players().length+')':'');"
             + "if(e!==est){est=e;log('estado: '+e)}},500);"
-            + "G.Social.on(function(w){var r=G.Social.room;if(w!=='room'||!r)log('sala: '+w+(r?' '+r.id+' miembros '+r.members.length+(r.isHost?' (anfitrión)':''):' (sin sala)'))});"
-            + "G.Net.onPeer(function(u,m){log('red: '+String(u).slice(0,6)+' '+m)});"
+            + "G.Social.on(function(w){var r=G.Social.room;if(w!=='room'||!r)log('sala: '+w+(r?' miembros '+r.members.length+(r.isHost?' (anfitrión)':''):' (sin sala)'))});"
+            + "G.Net.onPeer(function(u,m){log('red: jugador '+m)});"
             + "addEventListener('offline',function(){log('navegador SIN conexión')});addEventListener('online',function(){log('navegador con conexión')});"
             + "log('diagnóstico activo')},500)})()";
 
@@ -332,8 +341,6 @@ public class MainActivity extends Activity {
         return o.toString();
     }
 
-    // ---------------- ciclo de vida ----------------
-
     // ---------------- Wi-Fi ----------------
 
     /**
@@ -366,6 +373,8 @@ public class MainActivity extends Activity {
             // sin Wi-Fi o sin permiso: se juega igual
         }
     }
+
+    // ---------------- ciclo de vida ----------------
 
     @Override
     protected void onPause() {
