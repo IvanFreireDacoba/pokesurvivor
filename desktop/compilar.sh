@@ -18,7 +18,7 @@ else
   echo '{}' > build/variante.json
 fi
 ( cd .. && tar cf - --exclude=js/app.min.js --exclude=assets/og-image.jpg \
-    dev.html manifest.webmanifest favicon.ico LICENSE CREDITS.md css js assets ) | tar xf - -C build/juego
+    dev.html second.html manifest.webmanifest favicon.ico LICENSE CREDITS.md css js assets ) | tar xf - -C build/juego
 cp ../assets/icons/icon-512.png recursos/icono.png
 npm ci --no-audit --no-fund
 if [ -n "${1:-}" ]; then

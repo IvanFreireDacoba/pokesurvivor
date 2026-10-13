@@ -89,8 +89,14 @@ function crearVentana(sesion) {
   });
   ventana.setMenu(null);
 
-  // Enlaces externos (créditos, apoyar...): al navegador del sistema.
+  // Enlaces externos (créditos, apoyar...): al navegador del sistema. Las
+  // páginas del propio juego (el panel de segunda pantalla, second.html) se
+  // abren en una ventana de la app, con la misma sesión (BroadcastChannel).
   ventana.webContents.setWindowOpenHandler(({ url }) => {
+    if (new URL(url).host === HOST) {
+      return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, backgroundColor: '#0a1430',
+        webPreferences: { session: sesion, contextIsolation: true, sandbox: true } } };
+    }
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
