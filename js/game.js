@@ -527,6 +527,7 @@ G.Game = (() => {
     frameDt = state === 'playing' ? dt : 0;
 
     if (G.Pad) G.Pad.poll(real);
+    if (G.Second) G.Second.tick(real);
     handleKeys();
 
     if (state === 'playing') update(dt);

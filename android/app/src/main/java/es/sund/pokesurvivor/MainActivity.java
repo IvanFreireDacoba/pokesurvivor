@@ -3,10 +3,13 @@ package es.sund.pokesurvivor;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.hardware.display.DeviceProductInfo;
+import android.hardware.display.DisplayManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Choreographer;
+import android.view.Display;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -38,6 +41,9 @@ import java.util.Map;
  * Los botones y sticks del mando de la consola no llegan al WebView: se
  * leen aquí y se mandan al juego como estado completo (G.Pad.nativo, ver
  * js/core/gamepad.js), una vez por fotograma como mucho.
+ *
+ * En consolas de dos pantallas (AYN Thor...) la de abajo enseña un panel
+ * aparte: ver SegundaPantalla y js/core/second.js.
  */
 public class MainActivity extends Activity {
 
@@ -47,6 +53,31 @@ public class MainActivity extends Activity {
     private final Map<String, Boolean> botones = new LinkedHashMap<>();
     private float lx, ly, rx, ry, hatX, hatY;
     private boolean pendiente = false;
+
+    // Segunda pantalla (si la consola tiene): ver SegundaPantalla.
+    private DisplayManager pantallas;
+    private SegundaPantalla segunda;
+    // Hasta que el juego diga qué quiere el jugador (Ajustes), no se toca la otra pantalla.
+    private boolean segundaQuerida = false;
+    private boolean aLaVista = false;
+    private boolean hayOtra = false; // lo último que se le dijo al juego
+    private final DisplayManager.DisplayListener alCambiarPantallas = new DisplayManager.DisplayListener() {
+        @Override
+        public void onDisplayAdded(int id) {
+            revisarSegunda();
+        }
+
+        @Override
+        public void onDisplayRemoved(int id) {
+            revisarSegunda();
+        }
+
+        @Override
+        public void onDisplayChanged(int id) {
+            // Encendida/apagada, o cambio de tamaño (el sistema cierra entonces el panel).
+            revisarSegunda();
+        }
+    };
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -72,6 +103,8 @@ public class MainActivity extends Activity {
         web = crearWeb();
         setContentView(web);
         pantallaCompleta();
+        pantallas = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+        pantallas.registerDisplayListener(alCambiarPantallas, null);
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState);
         } else {
@@ -200,12 +233,111 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Lo que el juego puede preguntar a la app. */
-    static final class Puente {
+    /** Lo que el juego puede preguntar o pedir a la app (llega en un hilo del WebView). */
+    final class Puente {
         @JavascriptInterface
         public String plataforma() {
             return "android";
         }
+
+        /** ¿Hay una segunda pantalla donde poner el panel? */
+        @JavascriptInterface
+        public boolean segundaDisponible() {
+            return otraPantalla() != null;
+        }
+
+        /** Resumen de la partida (JSON) para el panel de la segunda pantalla. */
+        @JavascriptInterface
+        public void segunda(String json) {
+            runOnUiThread(() -> {
+                if (segunda != null) {
+                    segunda.enviar(json);
+                }
+            });
+        }
+
+        /** Ajustes > Segunda pantalla > Apagada: se suelta la pantalla de abajo. */
+        @JavascriptInterface
+        public void segundaVisible(boolean si) {
+            runOnUiThread(() -> {
+                segundaQuerida = si;
+                revisarSegunda();
+            });
+        }
+    }
+
+    // ---------------- segunda pantalla ----------------
+
+    /**
+     * La otra pantalla de la consola (la de abajo en una de dos), o null. Sólo
+     * pantallas integradas: una tele por HDMI o un envío inalámbrico se quedan
+     * como estén (duplicando el juego), no se les pone el panel.
+     */
+    private Display otraPantalla() {
+        int mia = Build.VERSION.SDK_INT >= 30 && getDisplay() != null
+                ? getDisplay().getDisplayId()
+                : getWindowManager().getDefaultDisplay().getDisplayId();
+        for (Display d : pantallas.getDisplays()) {
+            boolean privada = (d.getFlags() & Display.FLAG_PRIVATE) != 0;
+            if (d.getDisplayId() != mia && !privada && d.getState() != Display.STATE_OFF && integrada(d)) {
+                return d;
+            }
+        }
+        return null;
+    }
+
+    /** ¿Es una pantalla de la propia consola (no HDMI, ni inalámbrica, ni virtual)? */
+    private static boolean integrada(Display d) {
+        // Display.getType() dice justo esto, pero no es API pública: se intenta y,
+        // si el sistema no deja, se deduce de lo que sí lo es.
+        try {
+            Object tipo = Display.class.getMethod("getType").invoke(d);
+            if (tipo instanceof Integer) {
+                return (Integer) tipo == 1; // Display.TYPE_INTERNAL
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // API oculta bloqueada en este sistema
+        }
+        if (Build.VERSION.SDK_INT >= 31) {
+            // Las inalámbricas y virtuales no tienen datos del panel; un monitor por cable dice que lo es.
+            DeviceProductInfo info = d.getDeviceProductInfo();
+            if (info == null) {
+                return false;
+            }
+            int c = info.getConnectionToSinkType();
+            return c != DeviceProductInfo.CONNECTION_TO_SINK_DIRECT && c != DeviceProductInfo.CONNECTION_TO_SINK_TRANSITIVE;
+        }
+        return !d.getName().toUpperCase(java.util.Locale.ROOT).contains("HDMI");
+    }
+
+    /** Pone, cambia o quita el panel según las pantallas que haya y lo que quiera el jugador. */
+    private void revisarSegunda() {
+        Display d = aLaVista && segundaQuerida ? otraPantalla() : null;
+        // !isShowing(): el sistema lo ha cerrado por su cuenta (la pantalla cambió de tamaño).
+        if (segunda != null && (d == null || !segunda.isShowing()
+                || segunda.getDisplay().getDisplayId() != d.getDisplayId())) {
+            segunda.cerrar();
+            segunda = null;
+        }
+        if (d != null && segunda == null) {
+            SegundaPantalla nueva = new SegundaPantalla(this, d, cargador, this::accionSegunda);
+            try {
+                nueva.show();
+                segunda = nueva;
+            } catch (WindowManager.BadTokenException e) {
+                nueva.cerrar(); // la pantalla ha desaparecido entre medias, o no admite ventanas nuestras
+            }
+        }
+        boolean hay = otraPantalla() != null;
+        if (hay != hayOtra) {
+            hayOtra = hay;
+            web.evaluateJavascript("window.G&&G.Second&&G.Second.pantalla(" + hay + ")", null);
+        }
+    }
+
+    /** Lo que se toca en el panel (cambiar de ataque, pausa, cartas...) va al juego. */
+    private void accionSegunda(String json) {
+        web.evaluateJavascript("window.G&&G.Second&&G.Second.accion(" + JSONObject.quote(json) + ")", null);
     }
 
     private void pantallaCompleta() {
@@ -286,8 +418,9 @@ public class MainActivity extends Activity {
         }
         lx = e.getAxisValue(MotionEvent.AXIS_X);
         ly = e.getAxisValue(MotionEvent.AXIS_Y);
-        rx = e.getAxisValue(MotionEvent.AXIS_Z);
-        ry = e.getAxisValue(MotionEvent.AXIS_RZ);
+        boolean enRx = derechoEnRx(e);
+        rx = e.getAxisValue(enRx ? MotionEvent.AXIS_RX : MotionEvent.AXIS_Z);
+        ry = e.getAxisValue(enRx ? MotionEvent.AXIS_RY : MotionEvent.AXIS_RZ);
         // Cruceta como eje (muchas consolas la mandan así en vez de con teclas).
         hatX = e.getAxisValue(MotionEvent.AXIS_HAT_X);
         hatY = e.getAxisValue(MotionEvent.AXIS_HAT_Y);
@@ -296,6 +429,28 @@ public class MainActivity extends Activity {
         gatillo("r2", Math.max(e.getAxisValue(MotionEvent.AXIS_RTRIGGER), e.getAxisValue(MotionEvent.AXIS_GAS)));
         avisar();
         return true;
+    }
+
+    private int mandoVisto = -1;
+    private boolean mandoEnRx;
+
+    /**
+     * Stick derecho: casi siempre en Z/RZ. Algunos mandos (los de estilo
+     * Nintendo) no tienen esos ejes y lo mandan en RX/RY: sólo entonces se
+     * leen esos. Se mira una vez por mando.
+     */
+    private boolean derechoEnRx(MotionEvent e) {
+        InputDevice m = e.getDevice();
+        if (m == null) {
+            return false;
+        }
+        if (m.getId() != mandoVisto) {
+            mandoVisto = m.getId();
+            int s = e.getSource();
+            mandoEnRx = m.getMotionRange(MotionEvent.AXIS_Z, s) == null && m.getMotionRange(MotionEvent.AXIS_RZ, s) == null
+                    && m.getMotionRange(MotionEvent.AXIS_RX, s) != null && m.getMotionRange(MotionEvent.AXIS_RY, s) != null;
+        }
+        return mandoEnRx;
     }
 
     private final Map<String, Boolean> gatillos = new LinkedHashMap<>();
@@ -399,6 +554,20 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        aLaVista = true;
+        revisarSegunda();
+    }
+
+    @Override
+    protected void onStop() {
+        aLaVista = false;
+        revisarSegunda();
+        super.onStop();
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         web.saveState(outState);
@@ -406,6 +575,11 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        pantallas.unregisterDisplayListener(alCambiarPantallas);
+        if (segunda != null) {
+            segunda.cerrar();
+            segunda = null;
+        }
         web.destroy();
         super.onDestroy();
     }
