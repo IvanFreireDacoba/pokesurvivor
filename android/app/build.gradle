@@ -59,7 +59,7 @@ android {
 // sirve para la web publicada (SEO, Firebase hosting, herramientas, docs...).
 task copiarJuego(type: Sync) {
     from(rootProject.file('..')) {
-        include 'dev.html', 'manifest.webmanifest', 'css/**', 'js/**', 'assets/**', 'favicon.ico', 'LICENSE', 'CREDITS.md'
+        include 'dev.html', 'second.html', 'manifest.webmanifest', 'css/**', 'js/**', 'assets/**', 'favicon.ico', 'LICENSE', 'CREDITS.md'
         exclude 'js/app.min.js', 'assets/og-image.jpg'
     }
     into "$buildDir/generated/juego/juego"

@@ -8,12 +8,20 @@
  *              L / R = ataque anterior / siguiente · Start = pausa
  * En menús:    stick izq / cruceta = mover el foco · A = pulsar · B = volver
  *
+ * Eso es lo de serie. Los botones se cambian en Ajustes > Controles > Mando
+ * (ui/pad-ui.js): un reparto ya hecho (PRESETS) o botón a botón (ACCIONES),
+ * porque cada consola pone A/B y los gatillos donde quiere. Ajustes de
+ * G.Settings: padMap (el reparto), padDead (zona muerta) y padSwap (sticks
+ * intercambiados). Moverse y apuntar van siempre con los sticks.
+ *
  * Apuntado manual: con el stick derecho (o manteniendo el clic izquierdo del
  * ratón en PC) los ataques salen hacia donde apuntas; al soltar, vuelve el
  * apuntado automático de siempre. G.Input.axis() y player.js lo consultan.
  */
 G.Pad = (() => {
-  const DEAD = 0.25, AIM_DEAD = 0.35;
+  // Zona muerta de los sticks (Ajustes); para apuntar, un poco más.
+  const dead = () => G.U.clamp(+G.Settings.get('padDead') || 0.25, 0.05, 0.6);
+  const aimDead = () => dead() + 0.1;
   // Estado lógico: botones por nombre y ejes [-1..1].
   const nat = { btn: {}, lx: 0, ly: 0, rx: 0, ry: 0 };
   let prev = {};
@@ -46,23 +54,152 @@ G.Pad = (() => {
   function estado() {
     const web = leerNavegador();
     if (!web) return nat;
-    const algoNat = Object.keys(nat.btn).length || Math.hypot(nat.lx, nat.ly) > DEAD || Math.hypot(nat.rx, nat.ry) > DEAD;
+    const algoNat = Object.keys(nat.btn).length || Math.hypot(nat.lx, nat.ly) > dead() || Math.hypot(nat.rx, nat.ry) > dead();
     return algoNat ? nat : web;
   }
 
+  // ---------------- botones configurables ----------------
+
+  /**
+   * Lo que se puede asignar a un botón. ctx: 'juego' (en partida) o 'menu'.
+   * fijo: no puede quedarse sin botón (sin él no se podría usar el mando).
+   */
+  const ACCIONES = [
+    { id: 'prev',  ctx: 'juego', nombre: 'Ataque anterior',  def: ['l1', 'l2'], tecla: 'KeyQ' },
+    { id: 'next',  ctx: 'juego', nombre: 'Ataque siguiente', def: ['r1', 'r2'], tecla: 'KeyE' },
+    { id: 'm1',    ctx: 'juego', nombre: 'Ataque 1',         def: [],           tecla: 'Digit1' },
+    { id: 'm2',    ctx: 'juego', nombre: 'Ataque 2',         def: [],           tecla: 'Digit2' },
+    { id: 'm3',    ctx: 'juego', nombre: 'Ataque 3',         def: [],           tecla: 'Digit3' },
+    { id: 'm4',    ctx: 'juego', nombre: 'Ataque 4',         def: [],           tecla: 'Digit4' },
+    { id: 'pause', ctx: 'juego', nombre: 'Pausa',            def: ['start'],    tecla: 'Escape', fijo: true },
+    { id: 'ok',    ctx: 'menu',  nombre: 'Aceptar',          def: ['a'],        fijo: true },
+    { id: 'back',  ctx: 'menu',  nombre: 'Volver',           def: ['b', 'start'], fijo: true }
+  ];
+  const ACC = Object.fromEntries(ACCIONES.map(a => [a.id, a]));
+  // Botones asignables (la cruceta no: mueve al Pokémon y el foco).
+  const BOTONES = { a: 'A', b: 'B', x: 'X', y: 'Y', l1: 'L1', r1: 'R1', l2: 'L2', r2: 'R2', select: 'Select', start: 'Start', l3: 'L3', r3: 'R3' };
+  const esBoton = n => Object.prototype.hasOwnProperty.call(BOTONES, n);
+
+  /**
+   * Repartos ya hechos (Ajustes > Mando). Cada uno dice sólo lo que cambia
+   * respecto al de serie; lo que no nombra se queda como viene en ACCIONES.
+   */
+  const PRESETS = [
+    { id: 'serie',    nombre: 'De serie',           desc: 'L y R cambian de ataque. A acepta y B vuelve.', map: {} },
+    { id: 'nintendo', nombre: 'A y B al revés',     desc: 'Para consolas con los botones al estilo Nintendo: B acepta y A vuelve.',
+      map: { ok: ['b'], back: ['a', 'start'] } },
+    { id: 'caras',    nombre: 'Un botón por ataque', desc: 'X, Y, B y A eligen el ataque 1, 2, 3 y 4. L y R siguen cambiando.',
+      map: { m1: ['x'], m2: ['y'], m3: ['b'], m4: ['a'] } },
+    { id: 'gatillos', nombre: 'Ataques en los gatillos', desc: 'L1, R1, L2 y R2 eligen el ataque 1, 2, 3 y 4.',
+      map: { prev: [], next: [], m1: ['l1'], m2: ['r1'], m3: ['l2'], m4: ['r2'] } }
+  ];
+
+  let captura = null;        // esperando un botón: { id, sobre, t, cb }
+  let ultimo = null;         // último botón pulsado (para la prueba de Ajustes > Mando)
+
+  /**
+   * Reparto completo a partir de uno guardado o de un preset: sólo botones que
+   * existen, ninguno en dos acciones del mismo contexto y las acciones fijas
+   * nunca sin botón. (Lo guardado puede venir de otra versión o estar tocado a mano.)
+   */
+  function resolver(m) {
+    const out = {}, usados = { juego: new Set(), menu: new Set() };
+    const vale = (a, lista) => [...new Set(lista)].filter(n => esBoton(n) && !usados[a.ctx].has(n));
+    const poner = (a, bs) => { out[a.id] = bs; bs.forEach(n => usados[a.ctx].add(n)); };
+    // Primero lo elegido; después lo de serie con los botones que queden libres.
+    for (const a of ACCIONES) {
+      const v = m && typeof m === 'object' ? m[a.id] : null;
+      if (!Array.isArray(v)) continue;
+      const bs = vale(a, v);
+      if (bs.length || !a.fijo) poner(a, bs);
+    }
+    for (const a of ACCIONES) if (!out[a.id]) poner(a, vale(a, a.def));
+    return out;
+  }
+
+  let limpio = null;
+  G.Settings.on(k => { if (k === 'padMap') limpio = null; });
+  const mapa = () => limpio || (limpio = resolver(G.Settings.get('padMap')));
+  /** Botones que tiene ahora una acción. */
+  function botonesDe(id) { return mapa()[id] || []; }
+
+  const igual = (x, y) => ACCIONES.every(a => x[a.id].join() === y[a.id].join());
+  /** El preset que coincide con lo que hay ahora, o null si el jugador lo ha tocado. */
+  function presetActual() {
+    const p = PRESETS.find(q => igual(resolver(q.map), mapa()));
+    return p ? p.id : null;
+  }
+  function preset(id) {
+    const p = PRESETS.find(q => q.id === id);
+    if (p) G.Settings.set('padMap', resolver(p.map));
+  }
+
+  /**
+   * Da un botón a una acción. `sobre`: el botón suyo al que sustituye (si no,
+   * se añade a los que tenga). El botón se le quita a la acción del mismo
+   * contexto que lo tuviera; si esa es fija y se queda sin ninguno, hereda el
+   * sustituido (así A y B se intercambian de un paso).
+   * @returns false si no se puede (una acción fija se quedaría sin botón)
+   */
+  function asignar(id, boton, sobre) {
+    const acc = ACC[id];
+    if (!acc || !esBoton(boton)) return false;
+    const m = Object.assign({}, mapa());
+    const mios = m[id];
+    if (mios.includes(boton)) return true;                 // ya lo tiene
+    const hueco = mios.includes(sobre) ? sobre : null;
+    for (const o of ACCIONES) {
+      if (o.id === id || o.ctx !== acc.ctx || !m[o.id].includes(boton)) continue;
+      const resto = m[o.id].filter(n => n !== boton);
+      if (!resto.length && o.fijo) {
+        if (!hueco) return false;
+        resto.push(hueco);
+      }
+      m[o.id] = resto;
+    }
+    m[id] = hueco ? mios.map(n => (n === hueco ? boton : n)) : [...mios, boton];
+    G.Settings.set('padMap', m);
+    return true;
+  }
+
+  /** Quita un botón de una acción. @returns false si es fija y es el último. */
+  function quitar(id, boton) {
+    const acc = ACC[id], bs = botonesDe(id);
+    if (!acc || !bs.includes(boton) || (bs.length < 2 && acc.fijo)) return false;
+    G.Settings.set('padMap', Object.assign({}, mapa(), { [id]: bs.filter(n => n !== boton) }));
+    return true;
+  }
+
+  /**
+   * Espera a que se pulse un botón del mando y se lo da a la acción (ver asignar).
+   * cb(boton, hecho) al acabar; boton es null si pasan 5 s sin pulsar nada.
+   */
+  function capturar(id, sobre, cb) { captura = { id, sobre: sobre || null, t: 5, cb }; }
+  function cancelar() { captura = null; }
+
+  /** Todo lo del mando como viene: botones, zona muerta y sticks. */
+  function restablecer() {
+    G.Settings.set('padMap', {});
+    G.Settings.set('padDead', G.Settings.DEF.padDead);
+    G.Settings.set('padSwap', false);
+  }
+
+  /** Pone el foco del mando en un elemento (Ajustes lo usa al repintar). */
+  function enfocar(el) { if (usado && el) marcar(el); }
+
   let s = nat;
 
-  function stick(x, y, dead) {
+  function stick(x, y, zm) {
     const d = Math.hypot(x, y);
-    if (d < dead) return null;
-    const k = Math.min(1, (d - dead) / (1 - dead));
+    if (d < zm) return null;
+    const k = Math.min(1, (d - zm) / (1 - zm));
     return [x / d * k, y / d * k];
   }
 
   /** Movimiento: stick izquierdo o cruceta. Null si no se toca. */
   function vector() {
     if (!jugando()) return null;
-    const v = stick(s.lx, s.ly, DEAD);
+    const v = stick(s.lx, s.ly, dead());
     if (v) return v;
     let x = 0, y = 0;
     if (s.btn.left) x -= 1;
@@ -74,7 +211,7 @@ G.Pad = (() => {
 
   /** Ángulo de apuntado manual (stick derecho o ratón pulsado), o null. */
   function aimAngle(pl) {
-    const r = stick(s.rx, s.ry, AIM_DEAD);
+    const r = stick(s.rx, s.ry, aimDead());
     if (r) return Math.atan2(r[1], r[0]);
     if (ratonApunta && G.Input && G.Camera && G.Camera.scale) {
       const m = G.Input.mouse();
@@ -111,6 +248,8 @@ G.Pad = (() => {
   }
 
   const pulsado = n => s.btn[n] && !prev[n];
+  /** ¿Se acaba de pulsar algún botón de esta acción? */
+  const accion = id => botonesDe(id).some(pulsado);
 
   // ---------------- navegación de menús ----------------
 
@@ -121,7 +260,7 @@ G.Pad = (() => {
     if (cs.visibility === 'hidden' || cs.pointerEvents === 'none' || +cs.opacity === 0) return false;
     // Fuera de la pantalla pero mostrado: parte de una lista con scroll
     // (Pokédex, colección...). Se puede elegir y scrollIntoView lo trae.
-    if (r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return true;
+    if (r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return alcanzable(el);
     // Tapado por otra capa (p.ej. el menú debajo de un diálogo): el punto
     // central tiene que caer en el propio elemento.
     const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -146,6 +285,23 @@ G.Pad = (() => {
     return null;
   }
 
+  /**
+   * ¿Se puede traer a la vista con scroll? Sólo si la lista que lo contiene
+   * está delante: con un diálogo encima, mover el foco ahí haría scroll en la
+   * pantalla de debajo.
+   */
+  function alcanzable(el) {
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (!/auto|scroll/.test(cs.overflowY + cs.overflowX)) continue;
+      if (p.scrollHeight <= p.clientHeight && p.scrollWidth <= p.clientWidth) continue;
+      const r = p.getBoundingClientRect();
+      const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!t && (t === p || p.contains(t));
+    }
+    return true;
+  }
+
   function pulsables() {
     const raiz = ambito();
     if (!raiz) return [];
@@ -168,7 +324,13 @@ G.Pad = (() => {
     foco = el;
     if (!el) return;
     el.classList.add('gp-foco');
+    traer(el);
+  }
+
+  /** Lo trae a la vista; si aun así queda tapado (p.ej. bajo la barra de arriba), al centro. */
+  function traer(el) {
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (!visible(el)) el.scrollIntoView({ block: 'center', inline: 'nearest' });
   }
 
   function mover(dx, dy) {
@@ -177,18 +339,29 @@ G.Pad = (() => {
     // Al entrar en una pantalla, el foco empieza en lo principal (Continuar, la
     // primera carta...), nunca en lo primero que aparezca (p. ej. «Salir»).
     if (!foco || !lista.includes(foco)) { marcar(lista.find(el => el.matches('.btn.gold, .card')) || lista[0]); return; }
-    const o = centro(foco);
-    let mejor = null, md = Infinity;
+    const o = centro(foco), a = foco.getBoundingClientRect();
+    const SOLAPE = 4;                             // px que pueden pisarse dos vecinos
+    let mejor = null, md = Infinity;              // por bordes
+    let otro = null, od = Infinity;               // por centros, si lo anterior no encuentra nada
     for (const el of lista) {
       if (el === foco) continue;
       const c = centro(el), vx = c.x - o.x, vy = c.y - o.y;
       const along = vx * dx + vy * dy;           // avance en la dirección pedida
       if (along <= 2) continue;
-      const cross = Math.abs(vx * dy - vy * dx); // desvío lateral
-      const d = along + cross * 2.5;
+      const lado = Math.abs(vx * dy - vy * dx);  // desvío lateral entre centros
+      if (along + lado * 2.5 < od) { od = along + lado * 2.5; otro = el; }
+      // Hueco y desvío lateral entre los bordes, no entre los centros: un botón
+      // ancho (Jugar ocupa dos columnas) cuenta aunque su centro quede lejos.
+      // Sólo los que empiezan donde acaba el foco: los de al lado no valen.
+      const b = el.getBoundingClientRect();
+      const hueco = dx > 0 ? b.left - a.right : dx < 0 ? a.left - b.right : dy > 0 ? b.top - a.bottom : a.top - b.bottom;
+      if (hueco < -SOLAPE) continue;
+      const cross = dx ? Math.max(0, b.top - a.bottom, a.top - b.bottom) : Math.max(0, b.left - a.right, a.left - b.right);
+      // A igualdad, el más alineado por el centro.
+      const d = Math.max(0, hueco) + cross * 2.5 + lado * 0.05;
       if (d < md) { md = d; mejor = el; }
     }
-    if (mejor) marcar(mejor);
+    if (mejor || otro) marcar(mejor || otro);
   }
 
   function menus(dt) {
@@ -209,26 +382,39 @@ G.Pad = (() => {
       const raiz = ambito();
       if (!raiz || !raiz.contains(foco) || !visible(foco)) marcar(null);
     }
-    if (pulsado('a')) {
+    if (accion('ok')) {
       if (!foco || !visible(foco)) mover(0, 1);
       else if (/^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName)) foco.focus();
       else foco.click();
     }
-    if (pulsado('b') || pulsado('start')) tecla('Escape');
+    if (accion('back')) tecla('Escape');
   }
 
   // ---------------- bucle ----------------
 
   function poll(dt) {
     s = estado();
-    const hay = Object.keys(s.btn).length || stick(s.lx, s.ly, DEAD) || stick(s.rx, s.ry, DEAD);
+    if (G.Settings.get('padSwap') === true) s = { btn: s.btn, lx: s.rx, ly: s.ry, rx: s.lx, ry: s.ly };
+    const hay = Object.keys(s.btn).length || stick(s.lx, s.ly, dead()) || stick(s.rx, s.ry, dead());
     if (hay && !usado) { usado = true; document.body.classList.add('gamepad'); }
 
-    if (jugando()) {
+    const nuevo = Object.keys(s.btn).find(pulsado);
+    if (nuevo) ultimo = nuevo;
+
+    // Sólo se espera un botón con la pantalla del mando a la vista.
+    if (captura && !(G.PadUI && G.PadUI.isOpen)) captura = null;
+    if (captura) {
+      // Ajustes > Mando: el primer botón que se pulse es el elegido.
+      const c = captura, b = Object.keys(BOTONES).find(pulsado);
+      c.t -= dt || 0.016;
+      if (b || c.t <= 0) {
+        captura = null;
+        const hecho = b ? asignar(c.id, b, c.sobre) : false;
+        if (c.cb) c.cb(b || null, hecho);
+      }
+    } else if (jugando()) {
       if (foco) marcar(null);
-      if (pulsado('l1') || pulsado('l2')) tecla('KeyQ');
-      if (pulsado('r1') || pulsado('r2')) tecla('KeyE');
-      if (pulsado('start')) tecla('Escape');
+      for (const a of ACCIONES) if (a.ctx === 'juego' && accion(a.id)) tecla(a.tecla);
     } else if (usado) {
       menus(dt || 0.016);
     }
@@ -245,5 +431,12 @@ G.Pad = (() => {
   css.textContent = '.gp-foco{outline:3px solid #ffd84a!important;outline-offset:2px;box-shadow:0 0 0 6px rgba(255,216,74,.25)!important;border-radius:6px}';
   document.head.appendChild(css);
 
-  return { nativo, poll, vector, aimAngle, targetInCone };
+  return { nativo, poll, vector, aimAngle, targetInCone,
+           ACCIONES, BOTONES, PRESETS, botonesDe, preset, presetActual, capturar, cancelar, quitar, restablecer, enfocar,
+           /** Qué se está esperando asignar: { id, sobre } o null. */
+           get capturando() { return captura ? { id: captura.id, sobre: captura.sobre } : null; },
+           /** Último botón pulsado (nombre lógico: 'a', 'l1', 'up'...), o null. */
+           get ultimo() { return ultimo; },
+           /** ¿Se ha usado el mando en esta sesión? */
+           get usado() { return usado; } };
 })();
