@@ -540,5 +540,35 @@ G.I18n.add({
     'Tap the moves you do not want in your cards ({x}). The starting move cannot be banned.',
   'Ya tienes {x} vetados: quita uno primero': 'You already have {x} banned: remove one first',
   'En iPhone, Safari no deja poner las webs a pantalla completa. Pulsa Compartir y luego "Añadir a pantalla de inicio": abriendo el juego desde ese icono se juega a pantalla completa.':
-    'On iPhone, Safari does not let websites go fullscreen. Tap Share and then "Add to Home Screen": opening the game from that icon plays it fullscreen.'
+    'On iPhone, Safari does not let websites go fullscreen. Tap Share and then "Add to Home Screen": opening the game from that icon plays it fullscreen.',
+  // Mando (core/gamepad.js, ui/pad-ui.js)
+  'Mando': 'Gamepad', 'Botones y sticks': 'Buttons and sticks', 'Ahora: {x}': 'Now: {x}', 'Personalizado': 'Custom', 'Configurar': 'Set up',
+  'Repartos ya hechos': 'Presets', 'Elige el que más se parezca a tu consola. Después puedes retocarlo abajo.': 'Pick the one closest to your console. You can fine-tune it below.',
+  'De serie': 'Default', 'L y R cambian de ataque. A acepta y B vuelve.': 'L and R switch attack. A accepts and B goes back.',
+  'A y B al revés': 'A and B swapped', 'Para consolas con los botones al estilo Nintendo: B acepta y A vuelve.': 'For consoles with Nintendo-style buttons: B accepts and A goes back.',
+  'Un botón por ataque': 'One button per attack', 'X, Y, B y A eligen el ataque 1, 2, 3 y 4. L y R siguen cambiando.': 'X, Y, B and A pick attack 1, 2, 3 and 4. L and R still switch.',
+  'Ataques en los gatillos': 'Attacks on the triggers', 'L1, R1, L2 y R2 eligen el ataque 1, 2, 3 y 4.': 'L1, R1, L2 and R2 pick attack 1, 2, 3 and 4.',
+  'Ahora: Personalizado (lo has cambiado botón a botón).': 'Now: Custom (you changed it button by button).',
+  'Botón a botón': 'Button by button', 'Toca un botón para cambiarlo y pulsa en el mando el que quieras. «+» añade otro y «×» lo quita.': 'Tap a button to change it, then press the one you want on the gamepad. "+" adds another and "×" removes it.',
+  '¿No sabes cuál es cuál? Pulsa un botón del mando:': 'Not sure which is which? Press a button on the gamepad:', 'Sin usar': 'Not used',
+  'En partida': 'In a run', 'En los menús': 'In menus',
+  'Ataque anterior': 'Previous attack', 'Ataque siguiente': 'Next attack', 'Ataque 1': 'Attack 1', 'Ataque 2': 'Attack 2', 'Ataque 3': 'Attack 3', 'Ataque 4': 'Attack 4',
+  'Pulsa…': 'Press…', 'Sin botón  +': 'No button  +', 'Sin botón +': 'No button +',
+  'Cambiar este botón': 'Change this button', 'Quitar este botón': 'Remove this button', 'Añadir un botón': 'Add a button',
+  'Ese botón no se puede mover: otra acción se quedaría sin ninguno': "That button can't be moved: another action would be left with none",
+  'Sticks': 'Sticks', 'Moverse y apuntar van siempre con los sticks (o la cruceta).': 'Moving and aiming always use the sticks (or the D-pad).',
+  'Zona muerta': 'Dead zone', 'Súbela si el Pokémon se mueve solo.': 'Raise it if your Pokémon moves on its own.',
+  'Intercambiar los sticks': 'Swap the sticks', 'Moverse con el derecho y apuntar con el izquierdo.': 'Move with the right one and aim with the left one.',
+  'Empezar de cero': 'Start over', 'Restablecer': 'Reset', 'Botones, zona muerta y sticks como venían.': 'Buttons, dead zone and sticks back to how they came.',
+  'Mando restablecido': 'Gamepad reset',
+  // Segunda pantalla (core/second.js, second.html)
+  'Segunda pantalla': 'Second screen', 'Qué se ve en la pantalla de abajo. También se cambia tocando sus pestañas.': 'What the bottom screen shows. You can also switch it by tapping its tabs.',
+  'Un panel aparte para otra ventana u otro monitor.': 'A separate panel for another window or monitor.',
+  'Datos': 'Stats', 'Mapa': 'Map', 'Ataques': 'Attacks', 'Apagada': 'Off',
+  'Cartas en la segunda pantalla': 'Cards on the second screen', 'Al subir de nivel, las cartas también se pueden elegir ahí.': 'When you level up, you can also pick the cards there.',
+  'Abrir el panel': 'Open the panel', 'En otra ventana de este navegador.': 'In another window of this browser.', 'Abrir': 'Open',
+  'Esperando al juego…': 'Waiting for the game…', 'Aquí verás tu partida cuando empieces a jugar.': 'Your run will show up here once you start playing.',
+  'Pantalla apagada: toca para encenderla.': 'Screen off: tap to turn it on.',
+  'Elige una carta': 'Pick a card', 'Jefe': 'Boss', 'Grieta': 'Rift',
+  '{x} · {x} derrotados · {x} monedas': '{x} · {x} defeated · {x} coins', '{x} · Nv.{x}/{x}': '{x} · Lv.{x}/{x}', 'Nv. {x}': 'Lv. {x}'
 });

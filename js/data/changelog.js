@@ -9,7 +9,14 @@ G.CHANGELOG = [
   { d: '2026-10-13', title: ['Todas las partidas cuentan', 'Every run counts'], chg: [
     ['Ya no hay comprobaciones contra trampas: todas las partidas cuentan para el ranking y los récords, y no se pierde nada de lo ganado.',
      'No more anti-cheat checks: every run counts for the leaderboard and your records, and nothing you earn is taken away.']
+  ], new: [
+    ['Consolas de dos pantallas (como la AYN Thor): la de abajo puede enseñar tus datos, un mapa con los enemigos cercanos o botones grandes para cambiar de ataque, y elegir ahí las cartas de nivel. Se configura en Ajustes > Controles > Segunda pantalla.',
+     'Dual-screen handhelds (like the AYN Thor): the bottom screen can show your stats, a radar of nearby enemies or big buttons to switch attacks, and you can pick level-up cards there. Set it up in Settings > Controls > Second screen.'],
+    ['Mando configurable: en Ajustes > Controles > Mando eliges un reparto (A y B al revés, un botón por ataque, ataques en los gatillos) o cambias cada botón uno a uno, con una prueba en directo. También la zona muerta y cambiar los sticks.',
+     'Configurable gamepad: in Settings > Controls > Gamepad pick a layout (A and B swapped, one button per attack, attacks on the triggers) or remap each button with a live tester. Dead zone and stick swap too.']
   ], fix: [
+    ['Mando: la cruceta ya llega al botón «Jugar» del menú, y el foco ya no se va a lo que queda detrás de una ventana abierta.',
+     'Gamepad: the d-pad now reaches the "Play" button in the menu, and focus no longer jumps to what is behind an open window.'],
     ['Cooperativo: un corte de conexión de unos segundos (Wi-Fi que ahorra energía, móvil que cambia de red...) ya no te saca de la partida con «La sala se ha cerrado» mientras los demás siguen jugando.',
      'Co-op: a connection drop of a few seconds (power-saving Wi-Fi, a phone switching networks...) no longer kicks you out with "The room has been closed" while the others keep playing.']
   ] },
