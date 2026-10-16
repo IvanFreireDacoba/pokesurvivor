@@ -25,6 +25,8 @@ servidores, base de datos o costes NO van ahí.
 ## Servidores
 - Firebase: proyecto **pokesurvivor-free** (autenticación normal: cuentas gratis sin límite).
   **Nunca** activar "Identity Platform" ni nada que lo active (funciones de bloqueo, MFA,
-  "Actualizar para habilitar"): cobra por usuario. El proyecto viejo pokesurvivor-jpter se apaga a final de octubre de 2026.
-- Cloudflare (Worker `cloudflare/turn-worker.js`, plan de 5 $): no debe pasar de 5 $ al mes (el TURN tiene tope).
+  "Actualizar para habilitar"): cobra por usuario. El proyecto viejo pokesurvivor-jpter se borró el 13-10-2026 (con su facturación).
+- Cloudflare: SÓLO el dominio pokesurvivor.com (comprado allí, DNS gratis). El Worker y el TURN
+  (Cloudflare Realtime) se quitaron el 15-10-2026: el cooperativo va sólo con conexión directa
+  (STUN gratis de Google). No volver a añadir nada de pago.
 - Mantenimiento: `MAINTENANCE` en `js/main.js` (con `?dev` se puede entrar para probar).

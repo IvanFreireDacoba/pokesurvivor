@@ -110,16 +110,12 @@ G.Spawner = (() => {
     players = Array.isArray(who) ? who : [who];
     if (announceT > 0) announceT -= dt;
     // En la arena de la grieta no sale nada más (y el reloj de jefes espera).
-    if (G.Rift.inArena) return;
+    // En la Sentencia de Arceus, sólo sus legendarios (systems/judgment.js).
+    if (G.Rift.inArena || G.Judgment.active) return;
 
     // Precarga lo que va a salir en el próximo minuto.
     preloadT -= dt;
     if (preloadT <= 0) { preloadT = 10; G.Sprites.preload(G.Enemies.upcomingDex(t, 60)); }
-
-    // Aviso al empezar el tiempo extra (los enemigos se endurecen cada vez más
-    // deprisa, ver data/enemies.js).
-    const lf = G.Enemies.LATE_FROM * 60;
-    if (t >= lf && t - dt < lf) { say('¡Los Pokémon salvajes se vuelven cada vez más fuertes!', 3.6); G.Audio.sfx('boss'); }
 
     // --- jefes ---
     const b = G.Enemies.BOSSES[bossIdx];

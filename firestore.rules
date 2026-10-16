@@ -5,8 +5,9 @@ rules_version = '2';
 //   names/{apodo}          reserva de apodos únicos (en minúsculas)
 //   profiles/{uid}         apodo público de cada jugador
 //   friendships/{a_b}      solicitudes y amistades entre dos jugadores
-//   runs/{uid}             (antiguo) sólo se deja borrar al borrar la cuenta
+//   runs/{uid}             cuándo empezó tu última partida (anti-trampas del ranking)
 //   lb/{tabla}/e/{id}      ranking de tiempo aguantado
+//   reports/{tabla__id__uid}  reportes de marcas sospechosas (sólo los lee el admin)
 //   lbs/{tabla}            resumen con el top 50 de cada tabla
 //   pres/{uid}             en línea (aproximado) · inv/{para_de} invitaciones
 // Todo lo demás está cerrado.
@@ -15,18 +16,42 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     function me() { return request.auth.uid; }
+    // Moderación (pantalla oculta del juego, js/ui/mod-ui.js): sólo esta cuenta.
+    function admin() { return signedIn() && me() in ['rshaa5gKD3fXw6lE4PPXITbowaG2']; }
 
+    // ---------- partida guardada ----------
+    // Sólo su dueño la lee y la escribe. Ya no se marca a nadie solo (14-10-2026:
+    // los márgenes contra partidas imposibles dejaban fuera del ranking a gente
+    // legal). Lo único que deja a alguien sin ranking es que el admin lo banee
+    // (ban = true; el campo viejo "sus" ya no cuenta para nada). El jugador no
+    // puede quitarse el baneo: si está, sus guardados tienen que llevarlo.
     match /saves/{uid} {
       allow read, delete: if signedIn() && me() == uid;
+      allow read: if admin();
 
-      allow create, update: if signedIn() && me() == uid && validSaveDoc();
+      allow create: if signedIn() && me() == uid && validSaveDoc() && saneSave(request.resource.data.save)
+        && request.resource.data.get('ban', false) == false;
+      allow update: if signedIn() && me() == uid && validSaveDoc() && saneSave(request.resource.data.save)
+        && request.resource.data.get('ban', false) == resource.data.get('ban', false);
+      // El admin sólo puede banear o desbanear (y quitar la marca vieja).
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ban', 'sus'])
+        && request.resource.data.get('ban', false) is bool;
     }
 
     function validSaveDoc() {
-      return request.resource.data.keys().hasOnly(['save', 'updatedAt', 'v'])
+      return request.resource.data.keys().hasOnly(['save', 'updatedAt', 'v', 'sus', 'ban'])
         && request.resource.data.save is map
         && request.resource.data.v is int
+        && request.resource.data.get('ban', false) is bool
         && request.resource.data.updatedAt == request.time;
+    }
+    function tk(s, k) { return s.get('tickets', {}).get(k, 0); }
+    // Sólo que los números tengan sentido (el juego ya los limpia al cargar).
+    function saneSave(s) {
+      return s.get('coins', 0) is number && s.get('coins', 0) >= 0
+        && tk(s, 't1') is number && tk(s, 't1') >= 0
+        && tk(s, 't10') is number && tk(s, 't10') >= 0;
     }
 
     // ---------- apodos ----------
@@ -86,16 +111,30 @@ service cloud.firestore {
 
     // ---------- ranking ----------
 
+    // Al empezar cada partida (en grupo, el anfitrión) el servidor apunta la hora.
     match /runs/{uid} {
       allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if signedIn() && me() == uid
+        && request.resource.data.keys().hasOnly(['startedAt', 'mode'])
+        && request.resource.data.startedAt == request.time;
     }
 
-    // Una entrada sólo se puede mejorar, nunca empeorar.
+    // Una entrada sólo se puede mejorar, nunca empeorar. Anti-trampas:
+    //   - no puede durar más que el tiempo real desde que empezó tu partida
+    //     (runs/{uid}), con 30 s de margen; ni más de 1 h (la Sentencia de
+    //     Arceus acaba las partidas hacia el minuto 31-32; 1 h por si alguien
+    //     muy bueno aguanta mucho más)
+    //   - nivel y derrotados con margen de sobra (un grupo de 4 muy bueno)
+    //   - la cuenta no puede estar baneada por el admin (saves/{uid}.ban)
     function validEntry(board, id) {
       let d = request.resource.data;
+      let run = get(/databases/$(database)/documents/runs/$(me())).data;
       return d.keys().hasOnly(['t', 'uids', 'names', 'dex', 'shiny', 'lv', 'kills', 'at'])
-        && d.t is int && d.t > 0
-        && d.lv is int && d.kills is int
+        && d.t is int && d.t > 0 && d.t <= 3600
+        && d.t <= (request.time - run.startedAt).seconds() + 30
+        && d.lv is int && d.lv >= 1 && d.lv <= 10 + d.t / 4
+        && d.kills is int && d.kills >= 0 && d.kills <= 100 + d.t * 12
+        && get(/databases/$(database)/documents/saves/$(me())).data.get('ban', false) == false
         && d.uids is list && me() in d.uids
         && d.names is list && d.names.size() == d.uids.size()
         && d.dex is list && d.dex.size() == d.uids.size()
@@ -110,7 +149,7 @@ service cloud.firestore {
     match /lb/{board}/e/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn() && validEntry(board, id);
-      allow delete: if signedIn() && me() in resource.data.uids;
+      allow delete: if signedIn() && (me() in resource.data.uids || admin());
     }
 
     // Resumen con el top 50 de cada tabla (lo que se lee al mirar el ranking).
@@ -126,7 +165,11 @@ service cloud.firestore {
       return d.keys().hasOnly(['top', 'me', 'ev'])
         && d.top is map && d.top.size() <= 50
         && d.me is string && d.ev is string
-        && (d.me == '' ? removeMine(d, old, changed) : addMine(board, d, old, changed));
+        && (d.me == '' ? (removeMine(d, old, changed) || adminRemove(d, old)) : addMine(board, d, old, changed));
+    }
+    // Moderación: el admin sólo puede QUITAR filas del top.
+    function adminRemove(d, old) {
+      return admin() && old.keys().hasAll(d.top.keys()) && d.top.diff(old).changedKeys().size() == 0;
     }
     function addMine(board, d, old, changed) {
       let e = getAfter(/databases/$(database)/documents/lb/$(board)/e/$(d.me)).data;
@@ -168,6 +211,22 @@ service cloud.firestore {
         && request.resource.data.at == request.time
         && get(/databases/$(database)/documents/friendships/$(request.resource.data.to < me() ? request.resource.data.to + '_' + me() : me() + '_' + request.resource.data.to)).data.status == 'ok';
       allow delete: if signedIn() && (me() == resource.data.to || me() == resource.data.from);
+    }
+
+    // ---------- reportes ----------
+    // Un reporte por jugador y marca (id "tabla__marca__tuUid"). Los lee y
+    // borra el admin desde la pantalla oculta de moderación.
+    match /reports/{rid} {
+      allow read, delete: if admin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['board', 'e', 'names', 't', 'by', 'at'])
+        && request.resource.data.by == me()
+        && request.resource.data.board is string && request.resource.data.board.size() <= 40
+        && request.resource.data.e is string && request.resource.data.e.size() <= 160
+        && request.resource.data.names is list && request.resource.data.names.size() <= 4
+        && request.resource.data.t is int
+        && request.resource.data.at == request.time
+        && rid == request.resource.data.board + '__' + request.resource.data.e + '__' + me();
     }
 
     // Para borrar todas tus marcas al borrar la cuenta (consulta de grupo).

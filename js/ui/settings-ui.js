@@ -123,6 +123,8 @@ G.SettingsUI = (() => {
         + choice('stick', [[0.8, 'Pequeño'], [1, 'Normal'], [1.25, 'Grande']])
         + second()
         + pad()
+        + `<div class="set-row"><div class="grow"><b>Colocar los botones</b><small>Pon los ataques, la pausa y el joystick (fijo, si quieres) donde quieras de la pantalla.</small></div>
+             <button class="btn small" id="set-layout">Colocar</button></div>`
         + section('En PC')
         + `<div class="keys">
              <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas</div><span>moverse</span>
@@ -194,6 +196,7 @@ G.SettingsUI = (() => {
     const full = $('set-full'); if (full) full.onclick = toggleFull;
     const pad = $('set-pad'); if (pad) pad.onclick = () => G.PadUI.open();
     const sec = $('set-second'); if (sec) sec.onclick = () => window.open('second.html', 'ps-second', 'width=480,height=560');
+    const lay = $('set-layout'); if (lay) lay.onclick = () => G.LayoutUI.open();
     box.querySelectorAll('[data-lang]').forEach(b => { b.onclick = () => { if (b.dataset.lang !== G.I18n.lang) G.I18n.set(b.dataset.lang); }; });
     const lo = $('set-login'); if (lo) lo.onclick = () => { close(); leave(); };
     const out = $('set-logout'); if (out) out.onclick = () => { close(); leave(); };

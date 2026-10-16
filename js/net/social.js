@@ -25,8 +25,28 @@ G.Social = (() => {
   const VALID = /^[A-Za-z0-9_ñÑáéíóúÁÉÍÓÚ]{3,16}$/;
   const MAX_PLAYERS = 4;
   const INVITE_TTL = 3 * 60 * 1000;
-  const BEAT = 15 * 60 * 1000;          // latido de presencia (era 10 min: menos escrituras)
-  const ONLINE = 22 * 60 * 1000;        // "en línea" si el último latido es más reciente
+  /*
+   * Hora real: la del servidor de la web (cabecera Date de version.json, gratis).
+   * Si el reloj del aparato va adelantado (p. ej. la zona horaria mal puesta),
+   * todas las invitaciones parecían caducadas y se borraban sin enseñarse, y
+   * los amigos salían siempre desconectados (pasaba en 2026-10).
+   */
+  let skew = 0;
+  const now = () => Date.now() + skew;
+  function measureSkew() {
+    const t0 = Date.now();
+    fetch('version.json?t=' + t0, { method: 'HEAD', cache: 'no-store' }).then(r => {
+      const d = Date.parse(r.headers.get('date') || '');
+      if (!d) return;
+      const s = d + 500 - (t0 + Date.now()) / 2;          // (la cabecera va en segundos)
+      skew = Math.abs(s) > 60000 ? s : 0;
+      if (skew) console.warn('[Social] el reloj de este aparato va desfasado', Math.round(skew / 60000), 'min: se corrige');
+    }).catch(() => {});
+  }
+  // Latido de presencia: cada 30 min (era 15; antes 10). 57.000 jugadores con
+  // amigos lo escribían 4 veces por hora (13-10-2026, menos gasto de Firestore).
+  const BEAT = 30 * 60 * 1000;
+  const ONLINE = 40 * 60 * 1000;        // "en línea" si el último latido es más reciente
   const PRES_TTL = 60 * 1000;           // lo leído de los amigos vale 1 min
 
   let fb = null, uid = null;
@@ -56,6 +76,7 @@ G.Social = (() => {
     if (started) return me ? 'ok' : 'need-nick';
     fb = G.DB.fb; uid = fb.uid;
     started = true;
+    measureSkew();
     // El apodo no cambia nunca: se recuerda en este navegador y así no se lee
     // el perfil en cada visita (una lectura menos por jugador y sesión).
     const NICK = 'ps.nick.' + uid;
@@ -214,7 +235,7 @@ G.Social = (() => {
     presAt = Date.now();
     const ok = [...friends.values()].filter(f => f.status === 'ok');
     const docs = await Promise.all(ok.map(f => fb.fs.collection('pres').doc(f.uid).get().catch(() => null)));
-    const t = Date.now();
+    const t = now();
     ok.forEach((f, i) => {
       const v = docs[i] && docs[i].exists ? docs[i].data() : null;
       const on = !!(v && v.on && t - msOf(v.at) < ONLINE);
@@ -513,10 +534,10 @@ G.Social = (() => {
 
   function onInvite(ref, v) {
     // Las caducadas se borran; sólo se aceptan de amigos confirmados.
-    if (!v || (v.at && Date.now() - msOf(v.at) > INVITE_TTL)) { ref.delete().catch(() => {}); return; }
+    if (!v || (v.at && now() - msOf(v.at) > INVITE_TTL)) { ref.delete().catch(() => {}); return; }
     const f = friends.get(v.from);
     if (f && f.status !== 'ok') return;
-    invites.set(v.from, { from: v.from, name: v.name, room: v.room, at: msOf(v.at) || Date.now() });
+    invites.set(v.from, { from: v.from, name: v.name, room: v.room, at: msOf(v.at) || now() });
     emit('invites');
   }
 
@@ -524,7 +545,7 @@ G.Social = (() => {
 
   async function acceptInvite(from) {
     const inv = invites.get(from);
-    if (!inv || Date.now() - inv.at > INVITE_TTL) { invites.delete(from); emit('invites'); return { ok: false, error: 'La invitación ha caducado.' }; }
+    if (!inv || now() - inv.at > INVITE_TTL) { invites.delete(from); emit('invites'); return { ok: false, error: 'La invitación ha caducado.' }; }
     invites.delete(from);
     invDoc(from).delete().catch(() => {});
     emit('invites');
@@ -557,20 +578,21 @@ G.Social = (() => {
   let pubT = 0, pubAt = 0, pubLast = '';
   /**
    * Sube tu perfil (con un poco de espera, por si cambias varias cosas
-   * seguidas). Tras cada partida, como mucho una vez cada 10 min; si cambias
-   * favoritos o título (force), al momento. Si no ha cambiado nada, no se sube.
+   * seguidas), pero SÓLO si ha cambiado algo de lo que se ve a primera vista:
+   * récords de tiempo y nivel, legendarios, medallas, título o favoritos.
+   * Los jefes y derrotados (que cambian en cada partida) se suben con lo demás
+   * cuando toca, no por sí solos: el perfil se escribía 200.000 veces al día
+   * (13-10-2026). Si cambias favoritos o título (force), al momento.
    */
   function publishProfile(force = false) {
     if (!me || !fb) return;
-    if (!force && Date.now() - pubAt < 30 * 60 * 1000) return;     // como mucho cada 30 min (era 10)
+    if (!force && Date.now() - pubAt < 2 * 3600 * 1000) return;    // como mucho cada 2 h (era 30 min)
     clearTimeout(pubT);
     pubT = setTimeout(() => {
       if (!me || !fb) return;
       const d = profileData();
-      // Para decidir si se sube: los derrotados cuentan por miles (cambian en
-      // cada partida y reescribir el perfil cada vez gastaba miles de
-      // escrituras por hora). Se recuerda entre sesiones.
-      const key = JSON.stringify(Object.assign({}, d, { best: Object.assign({}, d.best, { kills: Math.floor(d.best.kills / 1000) }) }));
+      // Para decidir si se sube (se recuerda entre sesiones): sin jefes ni derrotados.
+      const key = JSON.stringify(Object.assign({}, d, { best: Object.assign({}, d.best, { kills: 0, bosses: 0 }) }));
       const lsKey = 'ps.pub.' + uid;
       if (!pubLast) { try { pubLast = localStorage.getItem(lsKey) || ''; } catch (e) { /* nada */ } }
       if (key === pubLast) return;
@@ -610,6 +632,8 @@ G.Social = (() => {
     get invites() { return [...invites.values()]; },
     get room() { return room; },
     get uid() { return uid; },
+    /** La hora real (corrige el reloj del aparato si va desfasado). */
+    now,
     VALID, MAX_PLAYERS
   };
 })();

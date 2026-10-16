@@ -96,9 +96,16 @@ jefe, la captura de un shiny salvaje y un shiny en el gacha.
 
 ## Licencia
 
-Código bajo MIT. Los sprites (CC BY-NC 4.0), la fuente (OFL) y las marcas de
-Pokémon tienen sus propias condiciones: ver [LICENSE](LICENSE) y
-[CREDITS.md](CREDITS.md). Proyecto de fan sin ánimo de lucro.
+Código bajo [PolyForm Noncommercial 1.0.0](LICENSE-NONCOMMERCIAL.md) desde el
+14-10-2026: se puede usar, estudiar y modificar, pero **no con fines
+comerciales** (ni vender el juego ni cobrar nada dentro de él). Las versiones
+hasta el commit `b297089` se publicaron bajo MIT. Los sprites (CC BY-NC 4.0),
+la fuente (OFL) y las marcas de Pokémon tienen sus propias condiciones: ver
+[LICENSE](LICENSE) y [CREDITS.md](CREDITS.md). Proyecto de fan sin ánimo de
+lucro.
+
+**La única web oficial es [pokesurvivor.com](https://pokesurvivor.com).** El
+juego es y será gratis: si alguien te pide pagar, no somos nosotros.
 
 ## Estructura
 

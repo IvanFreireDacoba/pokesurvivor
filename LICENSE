@@ -1,9 +1,24 @@
 PokéSurvivor — licencias
 
-1) CÓDIGO (todo lo que hay en js/, css/, index.html, tools/ y la música de
-   js/data/music.js): licencia MIT.
+1) CÓDIGO (todo lo que hay en js/, css/, index.html, dev.html, tools/ y la
+   música de js/data/music.js)
 
-MIT License
+   - Desde el 14-10-2026 (todo lo publicado después del commit b297089):
+     PolyForm Noncommercial License 1.0.0, texto completo en
+     LICENSE-NONCOMMERCIAL.md. Se puede usar, estudiar, modificar y compartir
+     SIN fines comerciales: no se puede vender, cobrar por jugarlo ni por
+     nada dentro de él, ni ponerle anuncios.
+
+     Required Notice: Copyright 2026 JPTER78 (https://github.com/JPTER78/pokesurvivor)
+
+   - Las versiones hasta el commit b297089 incluido (14-10-2026) se
+     publicaron bajo la licencia MIT de abajo, y para esas copias sigue
+     valiendo. No se aplica a nada posterior.
+
+   La única web oficial del juego es https://pokesurvivor.com. El juego es
+   gratis: cualquier web que cobre por él no es nuestra.
+
+MIT License (sólo versiones hasta el commit b297089)
 
 Copyright (c) 2026 JPTER78
 
@@ -25,7 +40,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-2) CONTENIDO DE TERCEROS (NO cubierto por la licencia MIT):
+2) CONTENIDO DE TERCEROS (NO cubierto por las licencias del código):
 
 - assets/pokemon/: sprites de SpriteCollab (https://github.com/PMDCollab/SpriteCollab),
   licencia CC BY-NC 4.0. Uso NO comercial y con atribución; los autores están

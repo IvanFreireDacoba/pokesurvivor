@@ -78,11 +78,15 @@ def page(pid, lang, title, desc, body, ld=None):
     legal = ('PokéSurvivor es un juego de fans <b>gratuito y sin ánimo de lucro</b>, sin anuncios ni compras (sólo donaciones voluntarias para los servidores). No está afiliado a Nintendo, Creatures, '
              'GAME FREAK ni The Pokémon Company; Pokémon y sus personajes son propiedad de sus respectivos dueños. Sprites de PMD SpriteCollab '
              '(CC BY-NC 4.0) · datos de PokéAPI · música y sonidos originales. No tiene ninguna criptomoneda ni token oficial: '
-             'cualquiera que use su nombre es de terceros y no nos hacemos cargo de compras ni inversiones.') if lang == 'es' else (
+             'cualquiera que use su nombre es de terceros y no nos hacemos cargo de compras ni inversiones. '
+             '<b>La única web oficial es pokesurvivor.com</b> y el juego es y será gratis: si alguien te pide pagar, no somos nosotros. '
+             'Código bajo PolyForm Noncommercial 1.0.0 (hasta el 14-10-2026, MIT).') if lang == 'es' else (
              'PokéSurvivor is a <b>free, non-profit</b> fan game with no ads or purchases (only voluntary donations for the servers). It is not affiliated with Nintendo, Creatures, GAME FREAK '
              'or The Pokémon Company; Pokémon and its characters are owned by their respective owners. Sprites from PMD SpriteCollab (CC BY-NC 4.0) '
              '· data from PokéAPI · original music and sounds. It has no official cryptocurrency or token: any using its name '
-             'belongs to third parties and we take no responsibility for purchases or investments.')
+             'belongs to third parties and we take no responsibility for purchases or investments. '
+             '<b>The only official website is pokesurvivor.com</b> and the game is and always will be free: if anyone asks you to pay, it isn\'t us. '
+             'Code under PolyForm Noncommercial 1.0.0 (MIT up to 14-10-2026).')
     ldj = ('<script type="application/ld+json">\n' + json.dumps(ld, ensure_ascii=False) + '\n</script>') if ld else ''
     return f'''<!doctype html>
 <html lang="{lang}">
@@ -471,6 +475,18 @@ def ach_page(lang):
 
 # ================= novedades =================
 NEWS = [
+ ('2026-10-14', ('Coloca los botones a tu gusto en el móvil', 'Place the buttons your way on mobile'),
+  ('En Ajustes > Controles > Colocar los botones puedes arrastrar los ataques, la pausa y el joystick a donde quieras, y elegir un joystick fijo.',
+   'In Settings > Controls > Place the buttons you can drag the attacks, the pause button and the joystick wherever you want, and choose a fixed joystick.')),
+ ('2026-10-14', ('La única web oficial es pokesurvivor.com', 'The only official website is pokesurvivor.com'),
+  ('PokéSurvivor es y será gratis. Si alguna otra web te pide pagar por tickets, monedas o lo que sea, no somos nosotros: es una copia. Desde hoy el código del juego va bajo una licencia no comercial (PolyForm Noncommercial 1.0.0).',
+   'PokéSurvivor is and always will be free. If any other website asks you to pay for tickets, coins or anything else, it isn’t us: it is a copy. From today the game’s code is under a non-commercial license (PolyForm Noncommercial 1.0.0).')),
+ ('2026-10-14', ('Recupera tu cuenta con Gmail', 'Recover your account with Gmail'),
+  ('Si juegas con nombre y contraseña, ya puedes vincular tu Gmail: si olvidas la contraseña, entras con Google y es tu misma cuenta.',
+   'If you play with a name and password, you can now link your Gmail: if you forget your password, sign in with Google and it is the same account.')),
+ ('2026-10-13', ('La Sentencia de Arceus', 'The Judgment of Arceus'),
+  ('Al llegar al minuto 30, Arceus baja del cielo y te lleva a las Ruinas del Juicio: es invencible, te persigue cada vez más deprisa y cada 5 segundos acude un legendario con el doble de vida y de daño que el anterior. Tres logros nuevos, música nueva y el ranking histórico empieza de cero.',
+   'At minute 30, Arceus descends from the sky and takes you to the Ruins of Judgment: it is invincible, chases you faster and faster, and every 5 seconds a legendary joins with twice the HP and damage of the previous one. Three new achievements, new music, and the all-time leaderboard starts from scratch.')),
  ('2026-10-12', ('Partidas sin límite, grietas con menos azar y novedades en el juego', 'Endless runs, less random rifts and a "What\'s new" screen'),
   ('Arreglado el fallo que dejaba la pantalla en negro o subía de nivel sin fin pasados 84 minutos; si algo falla, la partida se guarda sola. Las grietas salen como mucho cada 2,5 minutos y los legendarios que te faltan aparecen más. Los curanderos curan según lo fuerte que pegas, con tope. En cooperativo, si el anfitrión cambia de pestaña la partida se pausa para todos. Arreglos para iPhone, selector shiny en el menú, ataques cuerpo a cuerpo más fuertes y un botón de Novedades dentro del juego.',
    'Fixed the bug that turned the screen black or levelled you up forever after 84 minutes; if something fails, the run saves itself. Rifts show up at least every 2.5 minutes and the legendaries you are missing appear more often. Healers heal based on how hard you hit, with a cap. In co-op, if the host switches tabs the run pauses for everyone. iPhone fixes, a shiny toggle in the menu, stronger melee attacks and a "What\'s new" button inside the game.')),

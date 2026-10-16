@@ -89,17 +89,20 @@
       <div class="t2">Mundo Misterioso</div>
     </div>
     <p class="login-tag">Sobrevive a las hordas con tu compañero Pokémon · gratis, en PC y móvil</p>
+    <p class="login-official">Web oficial: pokesurvivor.com · si alguien te pide pagar, no somos nosotros</p>
     <div class="tabs">
       <div class="tab on" data-tab="login">Entrar</div>
       <div class="tab" data-tab="register">Crear cuenta</div>
     </div>
-    <p id="signup-closed" class="note center hidden"></p>
     <form id="login-form" autocomplete="off">
       <label for="f-user">Nombre</label>
       <input id="f-user" class="field" maxlength="16" spellcheck="false">
       <label for="f-pass">Contraseña</label>
       <input id="f-pass" class="field" type="password" maxlength="64">
       <p id="login-err" class="err"></p>
+      <p class="note"><a href="#" id="f-forgot">¿Olvidaste tu contraseña?</a></p>
+      <p id="forgot-note" class="note hidden">Si vinculaste tu Gmail, pulsa <b>Entrar con Google</b> con ese Gmail: es tu misma cuenta.
+        Si no lo vinculaste, no se puede recuperar: crea una cuenta nueva (y esta vez vincula tu Gmail desde el aviso que sale al entrar).</p>
       <div class="row">
         <button id="btn-auth" class="btn gold grow" type="submit">Entrar</button>
       </div>
@@ -217,6 +220,20 @@
   </div>
 </section>
 
+<!-- ====== Vincular Gmail para recuperar la cuenta (js/ui/login.js, offerRecovery) ====== -->
+<section id="scr-recover" class="scr dim hidden">
+  <div class="box" style="width:min(440px,100%)">
+    <h2>¿Te da miedo perder tu cuenta?</h2>
+    <p>Vincula tu Gmail: si un día olvidas la contraseña, pulsas <b>Entrar con Google</b> y es tu misma cuenta, con todo lo tuyo.</p>
+    <p class="err" id="rec-err"></p>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn gold grow" id="rec-link" type="button">Vincular mi Gmail</button>
+      <button class="btn ghost" id="rec-later" type="button">Ahora no</button>
+    </div>
+    <p class="note center"><a href="#" id="rec-never">No volver a preguntar</a></p>
+  </div>
+</section>
+
 <!-- ====== Apoyar el proyecto (donaciones) ====== -->
 <section id="scr-support" class="scr dim hidden">
   <div class="box support">
@@ -250,6 +267,8 @@
     <p>No está afiliado, patrocinado ni aprobado por Nintendo, Creatures Inc., GAME FREAK ni
       The Pokémon Company. Pokémon y todos los nombres y personajes relacionados son marcas y
       propiedad de sus respectivos dueños.</p>
+    <h3>Web oficial</h3>
+    <p>La única web oficial de PokéSurvivor es pokesurvivor.com. El juego es y será gratis: si alguien te pide pagar, no somos nosotros.</p>
     <h3>Criptomonedas</h3>
     <p>PokéSurvivor no tiene ninguna criptomoneda, token ni NFT oficial, y su autor no ha creado ninguno. Cualquier token que use el nombre del juego lo han creado terceros: no nos hacemos cargo de ninguna compra, venta o inversión que hagas con ellos, y nada de lo que hay aquí es una recomendación de inversión.</p>
     <h3>Contenido de terceros</h3>
@@ -261,6 +280,7 @@
     <p>Si eres titular de derechos y quieres que retiremos algo, escríbenos y lo quitaremos lo
       antes posible: <a id="legal-mail" href="#"></a></p>
     <p>Código fuente: <a id="legal-repo" href="#" target="_blank" rel="noopener"></a></p>
+    <p>Licencia del código: PolyForm Noncommercial 1.0.0 (se puede usar, estudiar y modificar, pero no para ganar dinero). Las versiones hasta el 14-10-2026 siguen bajo MIT.</p>
     <h3>Privacidad</h3>
     <p>Si creas una cuenta, guardamos tu nombre de jugador y tu partida (colección, monedas,
       mejoras y estadísticas) en Google Firebase para que puedas seguir en cualquier ordenador.
@@ -367,7 +387,7 @@
 <!-- ====== Ranking ====== -->
 <section id="scr-rank" class="scr dim hidden">
   <div class="box wide">
-    <div class="row between"><h2>Ranking <span class="sub" style="font-size:15px">· tiempo aguantado</span></h2><button class="btn small ghost" data-back>Volver</button></div>
+    <div class="row between"><h2>Ranking <span class="sub" style="font-size:15px">· tiempo aguantado</span></h2><span class="row" style="gap:6px"><button id="rk-mod" class="btn small ghost hidden">Moderación</button><button class="btn small ghost" data-back>Volver</button></span></div>
     <div class="gen-tabs" id="rk-mode"></div>
     <div class="filters" id="rk-period"></div>
     <div class="row rk-tools">
@@ -378,6 +398,18 @@
     </div>
     <div id="rk-list" class="rk-list"></div>
     <div id="rk-me" class="rk-me"></div>
+  </div>
+</section>
+
+<!-- ====== Moderación del ranking (sólo la cuenta de admin, ver js/ui/mod-ui.js) ====== -->
+<section id="scr-mod" class="scr dim hidden">
+  <div class="box wide">
+    <div class="row between"><h2>Moderación</h2><span class="row" style="gap:6px"><button class="btn small danger" id="mod-purge">Quitar marcas de más de 1 hora</button><button class="btn small ghost" id="mod-back">Volver</button></span></div>
+    <div class="tabs" id="mod-tabs">
+      <div class="tab on" data-tab="rep">Reportes</div>
+      <div class="tab" data-tab="sus">Baneados</div>
+    </div>
+    <div id="mod-list" class="rk-list" style="max-height:60vh"></div>
   </div>
 </section>
 
@@ -529,6 +561,6 @@
 </section>
 
 <!-- datos generados -->
-<script defer src="js/app.min.js?v=249cd94dc7"></script>
+<script defer src="js/app.min.js?v=51e4a72d5f"></script>
 </body>
 </html>

@@ -6,6 +6,9 @@
  * Botones del HUD (iconos de ataque, pausa): el HUD los registra en cada
  * fotograma con addButton(); un toque (o un clic con el ratón) sobre uno lo
  * pulsa en vez de abrir el joystick. Varios dedos a la vez funcionan.
+ *
+ * Joystick fijo (Ajustes > Controles > Colocar los botones): siempre en el
+ * mismo sitio; sólo se coge tocando cerca de él.
  */
 G.Touch = (() => {
   let cv = null, stick = null;
@@ -13,6 +16,17 @@ G.Touch = (() => {
   let buttons = [];
 
   const R = () => 56 * (G.Settings.get('stick') || 1);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /** Dónde ha colocado el jugador una cosa ('bar', 'pause', 'stick'): [x, y] en 0..1, o null. */
+  function spot(k) { const p = G.Settings.get('pad'); return p && Array.isArray(p[k]) ? p[k] : null; }
+  const STICK_DEF = [0.14, 0.72];
+  const fixed = () => G.Settings.get('stickMode') === 'fixed';
+  /** Centro del joystick fijo, en px de pantalla. */
+  function stickBase(w = cv.clientWidth, h = cv.clientHeight) {
+    const p = spot('stick') || STICK_DEF, r = R();
+    return { x: clamp(p[0] * w, r + 4, w - r - 4), y: clamp(p[1] * h, r + 4, h - r - 4) };
+  }
 
   function init(canvas) {
     cv = canvas;
@@ -63,14 +77,23 @@ G.Touch = (() => {
     const b = hit(e.clientX, e.clientY);
     if (b) { e.preventDefault(); press(b); return; }
     if (!touchy || stick || !G.Game || G.Game.state !== 'playing') return;
-    e.preventDefault();
-    stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
+    if (fixed()) {
+      // Fijo: sólo si el dedo cae cerca del joystick (si no, no hace nada).
+      const b0 = stickBase();
+      if (Math.hypot(e.clientX - b0.x, e.clientY - b0.y) > R() * 2.2) return;
+      e.preventDefault();
+      stick = { id: e.pointerId, fixed: true, ox: b0.x, oy: b0.y, x: e.clientX, y: e.clientY };
+    } else {
+      e.preventDefault();
+      stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY };
+    }
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* nada */ }
   }
 
   function move(e) {
     if (!stick || e.pointerId !== stick.id) return;
     stick.x = e.clientX; stick.y = e.clientY;
+    if (stick.fixed) return;
     const dx = stick.x - stick.ox, dy = stick.y - stick.oy, d = Math.hypot(dx, dy), r = R();
     if (d > r) { stick.ox = stick.x - dx / d * r; stick.oy = stick.y - dy / d * r; }
   }
@@ -111,23 +134,29 @@ G.Touch = (() => {
 
   /** Dibuja el joystick (coordenadas de pantalla, CSS px). */
   function draw(ctx) {
-    if (!stick) return;
-    const r = R();
+    // El fijo se ve siempre (más tenue sin tocarlo), para saber dónde está.
+    const base = !stick && fixed() && active ? stickBase() : null;
+    if (!stick && !base) return;
+    const s = stick || { ox: base.x, oy: base.y, x: base.x, y: base.y };
+    drawStick(ctx, s, R(), base ? 0.55 : 1);
+  }
+  /** Dibuja un joystick (también lo usa el editor de botones); k: opacidad. */
+  function drawStick(ctx, stick, r, k = 1) {
     const dx = stick.x - stick.ox, dy = stick.y - stick.oy, d = Math.hypot(dx, dy);
     const kx = stick.ox + (d > r ? dx / d * r : dx), ky = stick.oy + (d > r ? dy / d * r : dy);
     ctx.save();
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.5 * k;
     ctx.fillStyle = 'rgba(10,20,48,.55)';
     ctx.beginPath(); ctx.arc(stick.ox, stick.oy, r, 0, 6.2832); ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = '#f4f8ff';
     ctx.stroke();
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.85 * k;
     ctx.fillStyle = '#ffd23f';
     ctx.beginPath(); ctx.arc(kx, ky, r * 0.42, 0, 6.2832); ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = '#a55f00'; ctx.stroke();
     ctx.restore();
   }
 
-  return { init, vector, draw, clearButtons, addButton, reset, safeArea,
+  return { init, vector, draw, drawStick, clearButtons, addButton, reset, safeArea, spot, stickBase, R, STICK_DEF,
            get active() { return active; }, get stick() { return stick; } };
 })();

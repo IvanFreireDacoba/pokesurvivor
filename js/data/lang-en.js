@@ -163,11 +163,22 @@ G.I18n.add({
   // ---------------- avisos durante la partida ----------------
   '¡{x} salvaje apareció!': 'A wild {x} appeared!', '¡{x} shiny salvaje apareció!': 'A wild shiny {x} appeared!',
   '¡Un {x} shiny anda cerca!': 'A shiny {x} is nearby!', '¡Marea de Pokémon!': 'Pokémon swarm!',
-  '¡Los Pokémon salvajes se vuelven cada vez más fuertes!': 'Wild Pokémon are getting stronger and stronger!',
   '¡Has conseguido a {x} shiny!': 'You got a shiny {x}!', '¡Otro {x} shiny! (+300 monedas)': 'Another shiny {x}! (+300 coins)',
   '¡{x} te esperaba en la grieta!': '{x} was waiting in the rift!', '¡{x} shiny te esperaba en la grieta!': 'A shiny {x} was waiting in the rift!',
   '¡Has vencido a {x}! Recoge el premio…': 'You defeated {x}! Grab your reward…',
-  'Criptomonedas': 'Cryptocurrencies',
+  'Criptomonedas': 'Cryptocurrencies', 'Web oficial': 'Official website',
+  'Esta no es la web oficial: la partida sólo se guarda en este navegador. El juego oficial y gratis está en pokesurvivor.com.': 'This is not the official website: your game is only saved in this browser. The official, free game is at pokesurvivor.com.',
+  'Colocar los botones': 'Place the buttons', 'Colocar': 'Place',
+  'Pon los ataques, la pausa y el joystick (fijo, si quieres) donde quieras de la pantalla.': 'Put the attacks, the pause button and the joystick (fixed, if you like) anywhere on the screen.',
+  'Arrastra los botones a donde quieras': 'Drag the buttons wherever you want', 'Gira el móvil: se juega en horizontal.': 'Turn your phone: the game is played in landscape.',
+  'Joystick': 'Joystick', 'Flotante': 'Floating', 'Fijo': 'Fixed', 'Ataques': 'Attacks',
+  'Flotante: aparece donde pones el dedo. Fijo: siempre en el mismo sitio.': 'Floating: it appears where you put your finger. Fixed: always in the same place.',
+  'Restablecer': 'Reset', 'Guardar': 'Save', 'Botones colocados': 'Buttons placed',
+  'La única web oficial de PokéSurvivor es pokesurvivor.com. El juego es y será gratis: si alguien te pide pagar, no somos nosotros.':
+    "The only official PokéSurvivor website is pokesurvivor.com. The game is and always will be free: if anyone asks you to pay, it isn't us.",
+  'Licencia del código: PolyForm Noncommercial 1.0.0 (se puede usar, estudiar y modificar, pero no para ganar dinero). Las versiones hasta el 14-10-2026 siguen bajo MIT.':
+    'Code license: PolyForm Noncommercial 1.0.0 (you may use, study and modify it, but not to make money). Versions up to 14-10-2026 remain under MIT.',
+  'Web oficial: pokesurvivor.com · si alguien te pide pagar, no somos nosotros': 'Official website: pokesurvivor.com · if anyone asks you to pay, it isn\'t us',
   'PokéSurvivor no tiene ninguna criptomoneda, token ni NFT oficial, y su autor no ha creado ninguno. Cualquier token que use el nombre del juego lo han creado terceros: no nos hacemos cargo de ninguna compra, venta o inversión que hagas con ellos, y nada de lo que hay aquí es una recomendación de inversión.':
     "PokéSurvivor has no official cryptocurrency, token or NFT, and its author has not created any. Any token using the game's name was created by third parties: we take no responsibility for any purchase, sale or investment you make with them, and nothing here is investment advice.",
   '¡Vínculo!': 'Bond!', 'Vínculo': 'Bond', 'Atrás': 'Back',
@@ -522,6 +533,7 @@ G.I18n.add({
   'Pausa: esperando a {x} (anfitrión)…': 'Paused: waiting for {x} (host)…',
   'Novedades': "What's new",
   'Hay una versión nueva del juego: actualizando en {x} s…': 'A new version of the game is out: updating in {x} s…',
+  'Actualización obligatoria: tu partida se guarda y el juego se recarga en {x} s…': 'Required update: your run is saved and the game reloads in {x} s…',
   'No se pudo conectar (reintentando…)': 'Could not connect (retrying…)',
   'No se puede conectar con algún amigo: su red (o la tuya) no deja jugar en grupo. Probad con otra wifi o datos móviles; se reintenta solo.':
     "Can't connect to one of your friends: their network (or yours) doesn't allow group play. Try another Wi-Fi or mobile data; it retries automatically.",
@@ -568,5 +580,32 @@ G.I18n.add({
   'Esperando al juego…': 'Waiting for the game…', 'Aquí verás tu partida cuando empieces a jugar.': 'Your run will show up here once you start playing.',
   'Pantalla apagada: toca para encenderla.': 'Screen off: tap to turn it on.',
   'Elige una carta': 'Pick a card', 'Jefe': 'Boss', 'Grieta': 'Rift',
-  '{x} · {x} derrotados · {x} monedas': '{x} · {x} defeated · {x} coins', '{x} · Nv.{x}/{x}': '{x} · Lv.{x}/{x}', 'Nv. {x}': 'Lv. {x}'
+  '{x} · {x} derrotados · {x} monedas': '{x} · {x} defeated · {x} coins', '{x} · Nv.{x}/{x}': '{x} · Lv.{x}/{x}', 'Nv. {x}': 'Lv. {x}',
+
+  // ---------------- La Sentencia de Arceus (minuto 30) ----------------
+  'Ruinas del Juicio': 'Ruins of Judgment', 'LA SENTENCIA': 'THE JUDGMENT', 'DE ARCEUS': 'OF ARCEUS',
+  'El tiempo se ha agotado…': 'Time has run out…', '¡ARCEUS HA DESCENDIDO!': 'ARCEUS HAS DESCENDED!',
+  'Es invencible: huye y aguanta todo lo que puedas': 'It is invincible: run and survive as long as you can',
+  'Toca la pantalla para saltar': 'Tap the screen to skip', 'Pulsa Espacio para saltar': 'Press Space to skip',
+  '¡Huye de Arceus! Es invencible': 'Run from Arceus! It is invincible',
+  '¡{x} acude a la Sentencia!': '{x} answers the Judgment!',
+  'SENTENCIA · {x} · JEFES {x}': 'JUDGMENT · {x} · BOSSES {x}',
+  'Ante Arceus': 'Against Arceus', '{x} · {x} legendarios': '{x} · {x} legendaries', '{x} · {x} legendario': '{x} · {x} legendary',
+  'La Sentencia': 'The Judgment', 'Llega a la Sentencia de Arceus (minuto 30).': 'Reach the Judgment of Arceus (minute 30).',
+  'Ante el Creador': 'Before the Creator', 'Aguanta 1 minuto ante Arceus.': 'Survive 1 minute against Arceus.',
+  'Desafío divino': 'Divine challenge', 'Derrota a 3 legendarios ante Arceus en una partida.': 'Defeat 3 legendaries against Arceus in a single run.',
+  'Juzgado': 'Judged', 'Elegido de Arceus': 'Chosen of Arceus',
+
+  // ---------------- recuperar la cuenta (vincular Gmail) ----------------
+  '¿Olvidaste tu contraseña?': 'Forgot your password?',
+  '¿Te da miedo perder tu cuenta?': 'Afraid of losing your account?',
+  'Vincular mi Gmail': 'Link my Gmail', 'Ahora no': 'Not now', 'No volver a preguntar': "Don't ask again",
+  '¡Gmail vinculado! Si olvidas la contraseña, entra con Google.': 'Gmail linked! If you forget your password, sign in with Google.',
+  'Ese Gmail ya tiene su propia cuenta del juego. Usa otro Gmail.': 'That Gmail already has its own game account. Use another Gmail.',
+  'Inicia sesión primero.': 'Sign in first.',
+
+  // ---------------- reportar marcas del ranking ----------------
+  'Reportar marca sospechosa': 'Report suspicious record', 'Ya la has reportado': 'You already reported it',
+  'Ya has reportado esta marca': 'You already reported this record',
+  '¿Reportar la marca de {x} como trampa?': "Report {x}'s record as cheating?", 'Gracias: la revisaremos': 'Thanks: we will review it'
 });

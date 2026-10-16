@@ -77,7 +77,7 @@
 
     /** "hace 5 min", "hace 2 h", "hace 3 días". */
     function ago(t) {
-      const m = Math.max(1, Math.round((Date.now() - t) / 60000));
+      const m = Math.max(1, Math.round((G.Social.now() - t) / 60000));
       if (m < 60) return 'hace ' + m + ' min';
       const h = Math.round(m / 60);
       if (h < 48) return 'hace ' + h + ' h';
